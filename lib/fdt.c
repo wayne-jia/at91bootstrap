@@ -601,10 +601,16 @@ int fixup_memory_node(void *blob,
 {
 	int nodeoffset;
 	unsigned int data[4];
+	char name[] = "memory@20000000";
 	int valuelen;
 	int ret;
 
-	ret = of_get_node_offset(blob, "memory", &nodeoffset);
+	ret = of_get_node_offset(blob, name, &nodeoffset);
+	if (ret) {
+		/* try again with name "memory" */
+		name[6] = '\0';
+		ret = of_get_node_offset(blob, name, &nodeoffset);
+	}
 	if (ret) {
 		dbg_info("DT: doesn't support add node\n");
 		return ret;
@@ -616,7 +622,7 @@ int fixup_memory_node(void *blob,
 	 */
 	/* set "device_type" property */
 	ret = of_set_property(blob, nodeoffset,
-			"device_type", "memory", sizeof("memory"));
+			"device_type", name, strlen(name));
 	if (ret) {
 		dbg_info("DT: could not set device_type property\n");
 		return ret;
