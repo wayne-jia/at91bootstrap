@@ -332,26 +332,8 @@ static int qspi_exec(void *priv, const struct spi_flash_command *cmd)
 		/* Write data. */
 		memcpy(qspi->mem + offset, cmd->tx_data, cmd->data_len);
 	else if (cmd->rx_data)
-	{
 		/* Read data. */
-		if (!((unsigned int)(qspi->mem + offset) & 0x3) &&
-		    !((unsigned int)(cmd->rx_data) & 0x3) &&
-		    ((cmd->inst == SFLASH_INST_FAST_READ_1_4_4) ||
-		     (cmd->inst == SFLASH_INST_FAST_READ_1_4_4_4B))) {
-			unsigned int *src = qspi->mem + offset;
-			unsigned int *dest = (unsigned int *)cmd->rx_data;
-			int len = cmd->data_len >> 2;
-
-			while (len--)
-				*dest++ = *src++;
-
-			len = cmd->data_len & 0x3;
-			while (len--)
-				((unsigned char *)dest)[len] =
-						((unsigned char *)src)[len];
-		} else
-			memcpy(cmd->rx_data, qspi->mem + offset, cmd->data_len);
-	}
+		memcpy(cmd->rx_data, qspi->mem + offset, cmd->data_len);
 	else
 		/* Stop here for continuous read */
 		return 0;
