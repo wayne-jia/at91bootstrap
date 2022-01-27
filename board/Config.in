@@ -252,6 +252,7 @@ config SAMA5D2
 	select CPU_HAS_QSPI1_IOSET1
 	select CPU_HAS_QSPI1_IOSET2
 	select CPU_HAS_QSPI1_IOSET3
+	select CPU_HAS_LCDC
 	bool
 
 config SAMA7G5

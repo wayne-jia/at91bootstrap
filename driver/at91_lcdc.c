@@ -25,6 +25,7 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include "common.h"
 #include "hardware.h"
 #include "board.h"
 #include "string.h"
@@ -32,14 +33,11 @@
 #include "debug.h"
 #include "div.h"
 #include "pmc.h"
+#include "timer.h"
 
-//#define LCDC_RGBDEF 0x000000 // Background color, format is 0xRRGGBB
-//#define LCDC_SCALE  4        // Up scaling step is 0.125 (1/8), 0 means no scaling
-//#define LCDC_BL     255      // Back light, from 0 ~ 255
+#define LCDC_DMA_ADDR LOGO_FB_ADDRESS
+#define LCDC_BMP_ADDR (LOGO_FB_ADDRESS + sizeof(struct dma_desc))
 
-#define LCDC_DMA_ADDR TOP_OF_MEMORY
-#define LCDC_BMP_ADDR (TOP_OF_MEMORY + sizeof(struct dma_desc))
-#define LCDC_RGB_MODE LAYER_RGB_888_PACKED
 #define LCDC_XPHIDEF  4
 #define LCDC_YPHIDEF  4
 
@@ -76,8 +74,28 @@ struct lcdc_desc {
 	struct dma_desc *ovr_dma;
 	u8 *ovr_buf;
 
+	u32 clut_size;
+
 	struct bmp_desc *bmp;
 };
+
+typedef enum {
+	BI_RGB       = 0x0000,
+	BI_RLE8      = 0x0001,
+	BI_RLE4      = 0x0002,
+	BI_BITFIELDS = 0x0003,
+	BI_JPEG      = 0x0004,
+	BI_PNG       = 0x0005,
+	BI_CMYK      = 0x000B,
+	BI_CMYKRLE8  = 0x000C,
+	BI_CMYKRLE4  = 0x000D
+} Compression;
+
+struct bit_fields {
+	u32 r_mask;
+	u32 g_mask;
+	u32 b_mask;
+} __attribute__ ((packed, aligned(1)));
 
 struct bmp_desc {
 	u8  bf_type[2];
@@ -145,9 +163,35 @@ static u32 heo_upscaling_ycoef[] = {
 	0x00205907,
 };
 
+static unsigned char lookup_table[16] = {
+	0x0, 0x8, 0x4, 0xc,
+	0x2, 0xa, 0x6, 0xe,
+	0x1, 0x9, 0x5, 0xd,
+	0x3, 0xb, 0x7, 0xf,
+};
+
+static inline unsigned char reverse_bit(unsigned char c)
+{
+	return (lookup_table[c & 0xf] << 4) | lookup_table[c >> 4];
+}
+
+static inline unsigned char reverse_4bit(unsigned char c)
+{
+	return (c >> 4) | (c << 4);
+}
+
 static inline unsigned int lcdc_get_base(void)
 {
 	return CONFIG_SYS_BASE_LCDC;
+}
+
+static inline unsigned int lcdc_get_clock(void)
+{
+#ifdef CONFIG_SAMA5D2
+	return pmc_mck_get_rate(CONFIG_SYS_ID_LCDC);
+#elif CONFIG_SAM9X60
+	return pmc_get_generic_clock(CONFIG_SYS_ID_LCDC);
+#endif
 }
 
 static unsigned int lcdc_readl(unsigned int reg)
@@ -218,15 +262,19 @@ static void lcdc_off(void)
 static void lcdc_on(void)
 {
 	u32 pixel_clock = lcdc.framerate;
-	u32 lcd_clock = pmc_get_generic_clock(CONFIG_SYS_ID_LCDC);
+	u32 clk_div, remainder;
 
 	pixel_clock *= lcdc.timing_hpw + lcdc.timing_hbp +
 		lcdc.width + lcdc.timing_hfp;
 	pixel_clock *= lcdc.timing_vpw + lcdc.timing_vbp +
 		lcdc.height + lcdc.timing_vfp; 
 
+	division(lcdc_get_clock(), pixel_clock, (unsigned int *)&clk_div, (unsigned int *)&remainder);
+	if (remainder > (pixel_clock / 2))
+		clk_div++;
+
 	wait_for_clock_domain_sync();
-	lcdc_writel(LCDC_CFG(0), LCDC_CFG0_CLKDIV(div(lcd_clock, pixel_clock) - 2) |
+	lcdc_writel(LCDC_CFG(0), LCDC_CFG0_CLKDIV(clk_div - 2) |
 				 LCDC_CFG0_CGDISPP | 
 				 LCDC_CFG0_CGDISHEO |
 				 LCDC_CFG0_CGDISBASE |
@@ -300,7 +348,7 @@ void lcdc_show_heo(void)
 
 	/* Configure CULT if needed */
 	if (lcdc.ovr_mode | LAYER_CLUT)
-		set_clut(LCDC_HEOCLUT(0), (u8 *)lcdc.bmp->clut, 256);
+		set_clut(LCDC_HEOCLUT(0), (u8 *)lcdc.bmp->clut, lcdc.clut_size);
 
 	/* Configure scaler if needed */
 	if (lcdc.ovr_width != lcdc.ovr_sc_width) {
@@ -333,34 +381,112 @@ void lcdc_init(void)
 
 int lcdc_display(void)
 {
-	u8 pixel_bytes;
+	u32 i;
+	u32 line_bytes;
 	u8 line_padding;
+	struct bit_fields *bf = NULL;
 
 	if ((lcdc.bmp->bf_type[0] != 'B') || (lcdc.bmp->bf_type[1] != 'M')) {
-		dbg_printf("ERROR: bmp file not found\n\r");
+		dbg_printf("LCDC: bmp file not found\n\r");
 		return -1;
 	}
 
-	if (lcdc.bmp->bi_bitcount == 24) {
+	switch (lcdc.bmp->bi_bitcount) {
+	case 32:
+		line_bytes = lcdc.bmp->bi_width * 4;
+
+		if (lcdc.bmp->bi_compression == BI_RGB) {
+			lcdc.ovr_mode = LAYER_ARGB_8888;
+		} else if (lcdc.bmp->bi_compression == BI_BITFIELDS) {
+			bf = (struct bit_fields *)&lcdc.bmp->clut;
+
+			if ((bf->r_mask == 0xff0000) && (bf->g_mask == 0xff00) && (bf->b_mask == 0xff))
+				lcdc.ovr_mode = LAYER_ARGB_8888;
+			else
+				goto UNSUPPORTED;
+		}
+		break;
+
+	case 24:
+		line_bytes = lcdc.bmp->bi_width * 3;
 		lcdc.ovr_mode = LAYER_RGB_888_PACKED;
-		pixel_bytes = 3;
-	} else if (lcdc.bmp->bi_bitcount == 8) {
-		lcdc.ovr_mode = LAYER_CLUT_8BPP | LAYER_CLUT;
-		pixel_bytes = 1;
-	} else {
-		dbg_printf("ERROR: unsupported bmp format, bitcount=%d\n\r", lcdc.bmp->bi_bitcount);
+		break;
+
+	case 16:
+		line_bytes = lcdc.bmp->bi_width * 2;
+
+		if (lcdc.bmp->bi_compression == BI_RGB) {
+			lcdc.ovr_mode = LAYER_TRGB_1555;
+		} else if (lcdc.bmp->bi_compression == BI_BITFIELDS) {
+			bf = (struct bit_fields *)&lcdc.bmp->clut;
+
+			if ((bf->r_mask == 0x7c00) && (bf->g_mask == 0x03e0) && (bf->b_mask == 0x001f))
+				lcdc.ovr_mode = LAYER_TRGB_1555;
+			else if ((bf->r_mask == 0xf800) && (bf->g_mask == 0x07e0) && (bf->b_mask == 0x001f))
+				lcdc.ovr_mode = LAYER_RGB_565;
+			else
+				goto UNSUPPORTED;
+		} else {
+			goto UNSUPPORTED;
+		}
+		break;
+
+	case 8:
+		line_bytes = lcdc.bmp->bi_width * 1;
+		lcdc.ovr_mode  = LAYER_CLUT_8BPP | LAYER_CLUT;
+		lcdc.clut_size = 256;
+		break;
+
+	case 4:
+		line_bytes = lcdc.bmp->bi_width / 2;
+		if (lcdc.bmp->bi_width & 0x1) {
+			line_bytes++;
+			dbg_printf("LCDC: ERROR logo width %d is not 2 pixels aligned\n", lcdc.bmp->bi_width);
+		}
+		lcdc.ovr_mode = LAYER_CLUT_4BPP | LAYER_CLUT;
+		lcdc.clut_size = 16;
+		break;
+
+	case 1:
+		line_bytes = lcdc.bmp->bi_width / 8;
+		if (lcdc.bmp->bi_width & 0x7) {
+			line_bytes++;
+			dbg_printf("LCDC: ERROR logo width %d is not 8 pixels aligned\n", lcdc.bmp->bi_width);
+		}
+		lcdc.ovr_mode = LAYER_CLUT_1BPP | LAYER_CLUT;
+		lcdc.clut_size = 2;
+		break;
+
+	default:
+UNSUPPORTED:
+		dbg_printf("LCDC: unsupported bmp format, bitcount=%d compression=%x\n\r", lcdc.bmp->bi_bitcount, lcdc.bmp->bi_compression);
+		if ((lcdc.bmp->bi_compression == BI_BITFIELDS) && bf)
+			dbg_printf("LCDC: r_mask=%x, g_mask=%x, b_mask=%x\n\r", bf->r_mask, bf->g_mask, bf->b_mask);
 		return -1;
 	}
-	line_padding = lcdc.bmp->bi_width & (BMP_LINE_ALIGN - 1); 
+
+	line_padding = line_bytes & (BMP_LINE_ALIGN - 1);
 	if (line_padding)
 		line_padding = BMP_LINE_ALIGN - line_padding;
 
 	lcdc.ovr_buf    = (u8 *)(LCDC_BMP_ADDR + lcdc.bmp->bf_offbits);
 	lcdc.ovr_width  = lcdc.bmp->bi_width;
+
+	if ((lcdc.bmp->bi_bitcount == 1) || (lcdc.bmp->bi_bitcount == 4)) {
+		u32 lines = (int)lcdc.bmp->bi_height >= 0 ? lcdc.bmp->bi_height : -lcdc.bmp->bi_height;
+
+		for (i = 0; i < ((line_bytes + line_padding) * lines); i++) {
+				if (lcdc.bmp->bi_bitcount == 1)
+					lcdc.ovr_buf[i] = reverse_bit(lcdc.ovr_buf[i]);
+				else if (lcdc.bmp->bi_bitcount == 4)
+					lcdc.ovr_buf[i] = reverse_4bit(lcdc.ovr_buf[i]);
+		}
+	}
+
 	if (((int)lcdc.bmp->bi_height) > 0) {
 		lcdc.ovr_height  = lcdc.bmp->bi_height;
-		lcdc.ovr_xstride = -(lcdc.ovr_width * pixel_bytes * 2 + line_padding);
-		lcdc.ovr_buf     += (lcdc.ovr_width * pixel_bytes + line_padding) * (lcdc.ovr_height - 1);
+		lcdc.ovr_xstride = -(line_bytes * 2 + line_padding);
+		lcdc.ovr_buf     += (line_bytes + line_padding) * (lcdc.ovr_height - 1);
 	} else {
 		lcdc.ovr_height  = -lcdc.bmp->bi_height;
 		lcdc.ovr_xstride = line_padding;
@@ -377,6 +503,8 @@ int lcdc_display(void)
 	lcdc.ovr_dma->reserved = 0;
 
 	lcdc_show_heo();
+	if (LOGO_BL_DELAY)
+		mdelay(LOGO_BL_DELAY);
 	lcdc_set_backlight(LOGO_BL);
 
 	return 0;

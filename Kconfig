@@ -723,6 +723,14 @@ config LOGO_ADDRESS
 	help
 	  The address of the image file in the Flash
 
+config LOGO_FB_ADDRESS
+	string "Logo framebuffer address"
+	depends on LOGO
+	default TOP_OF_MEMORY
+	help
+	  The address of the framebuffer in SRAM or DDR
+	  SRAM(TOP_OF_MEMORY) is used by default
+
 config LOGO_RGBDEF
 	string "Background color"
 	depends on LOGO
@@ -747,5 +755,13 @@ config LOGO_BL
 	help
 	  The brightness of backlight
 	  The value is from 0 ~ 255 (off ~ brightest)
+
+config LOGO_BL_DELAY
+	string "Backlight on delay"
+	depends on LOGO
+	default "0"
+	help
+	  Delay before turn on the backlight
+	  The unit is milliseconds
 
 endmenu

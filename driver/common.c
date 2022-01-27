@@ -136,7 +136,7 @@ void init_load_image(struct image_info *image)
 	image->logo_filename = logo_filename;
 	strcpy(image->logo_filename, LOGO_NAME);
 #endif
-	image->logo_dest = (unsigned char *)(TOP_OF_MEMORY + 16);
+	image->logo_dest = (unsigned char *)(LOGO_FB_ADDRESS + 16);
 #endif
 }
 #endif
