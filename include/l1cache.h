@@ -53,4 +53,19 @@ void dcache_clean(void);
  */
 void dcache_invalidate(void);
 
+/**
+ * \brief Invalidate the data cache region.
+ */
+void dcache_invalidate_region(unsigned int *addr, unsigned int size);
+
+/**
+ * \brief Clean the data cache region.
+ */
+void dcache_clean_region(unsigned int *addr, unsigned int size);
+
+/**
+ * \brief Clean and invalidate the data cache region.
+ */
+void dcache_clean_invalidate_region(unsigned int *addr, unsigned int size);
+
 #endif /* L1CACHE_H_ */

@@ -96,3 +96,39 @@ void dcache_clean(void)
 	dsb();
 }
 
+void dcache_invalidate_region(unsigned int *addr, unsigned int size)
+{
+	unsigned int mva = (unsigned int)addr & ~(L1_CACHE_BYTES - 1);
+
+	for ( ; mva < ((unsigned int)addr + size); mva += L1_CACHE_BYTES)
+	{
+		cp15_dcache_invalidate_mva(mva);
+		dmb();
+	}
+	dsb();
+}
+
+void dcache_clean_region(unsigned int *addr, unsigned int size)
+{
+	unsigned int mva = (unsigned int)addr & ~(L1_CACHE_BYTES - 1);
+
+	for ( ; mva < ((unsigned int)addr + size); mva += L1_CACHE_BYTES)
+	{
+		cp15_dcache_clean_mva(mva);
+		dmb();
+	}
+	dsb();
+}
+
+void dcache_clean_invalidate_region(unsigned int *addr, unsigned int size)
+{
+	unsigned int mva = (unsigned int)addr & ~(L1_CACHE_BYTES - 1);
+
+	for ( ; mva < ((unsigned int)addr + size); mva += L1_CACHE_BYTES)
+	{
+		cp15_dcache_clean_invalidate_mva((unsigned int)mva);
+		dmb();
+	}
+	dsb();
+}
+

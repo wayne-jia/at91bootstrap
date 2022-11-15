@@ -20,6 +20,8 @@
 #include "mon.h"
 #include "tz_utils.h"
 #include "secure.h"
+#include "l1cache.h"
+#include "mmu.h"
 
 #include "debug.h"
 
@@ -452,6 +454,14 @@ int load_kernel(struct image_info *image)
 
 	mach_type = MACH_TYPE;
 	r2 = (unsigned int)(AT91C_BASE_DDRCS + 0x100);
+#endif
+
+#ifdef CONFIG_CACHES
+        icache_disable();
+        dcache_disable();
+#endif
+#ifdef CONFIG_MMU
+        mmu_disable();
 #endif
 
 	dbg_info("\nKERNEL: Starting linux kernel ..., machid: %x\n\n",
