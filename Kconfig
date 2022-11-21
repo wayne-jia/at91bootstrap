@@ -1063,5 +1063,12 @@ config SFRBU
 	default y
 	help
 	  SFRBU support
+
+config XDMAC
+	bool "XDMA controller support"
+	depends on SAM9X60
+	default n
+	help
+	  DMA controller support
 endmenu
 

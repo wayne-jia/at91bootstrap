@@ -18,6 +18,7 @@
 #include "sdramc.h"
 #include "timer.h"
 #include "watchdog.h"
+#include "xdmac.h"
 #include "string.h"
 #include "sam9x60_board.h"
 #include "board_hw_info.h"
@@ -279,6 +280,13 @@ void twi_init()
 }
 #endif
 
+#ifdef CONFIG_XDMAC
+void xdmac_hw_init(void)
+{
+	pmc_enable_periph_clock(CONFIG_SYS_ID_XDMAC, PMC_PERIPH_CLK_DIVIDER_NA);
+}
+#endif
+
 void hw_init(void)
 {
 	unsigned int reg;
@@ -335,6 +343,10 @@ void hw_init(void)
 	writel(reg, (AT91C_BASE_SFR + SFR_DDRCFG));
 	/* Initialize SDRAM Controller */
 	sdramc_init();
+#endif
+
+#ifdef CONFIG_XDMAC
+	xdmac_hw_init();
 #endif
 
 #ifdef CONFIG_BOARD_QUIRK_SAM9X60_EK
@@ -474,7 +486,7 @@ void nandflash_set_smc_timing(unsigned int mode)
 		writel(AT91C_SMC_NWESETUP_(2), AT91C_BASE_SMC + SMC_SETUP3);
 
 		writel(AT91C_SMC_NWEPULSE_(3) | AT91C_SMC_NCS_WRPULSE_(7) |
-		       AT91C_SMC_NRDPULSE_(4) | AT91C_SMC_NCS_RDPULSE_(6),
+		       AT91C_SMC_NRDPULSE_(3) | AT91C_SMC_NCS_RDPULSE_(6),
 		       AT91C_BASE_SMC + SMC_PULSE3);
 
 		writel(AT91C_SMC_NWECYCLE_(7) | AT91C_SMC_NRDCYCLE_(6),
