@@ -198,6 +198,10 @@ else
 BLOB:=
 endif
 
+ifeq ($(CONFIG_UNC_IMAGE), y)
+UNC_IMAGE_SIZE := $(strip $(subst ",,$(CONFIG_UNC_IMAGE_SIZE)))
+endif
+
 ifeq ($(CONFIG_LOAD_LINUX), y)
 TARGET_NAME:=linux-$(or $(subst I,i,$(IMAGE_NAME)),image)
 else ifeq ($(CONFIG_LOAD_ANDROID), y)

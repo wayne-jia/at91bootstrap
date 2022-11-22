@@ -69,6 +69,8 @@ void init_load_image(struct image_info *image)
 
 #if !defined(CONFIG_LOAD_LINUX) && !defined(CONFIG_LOAD_ANDROID)
 	image->length = IMG_SIZE;
+#elif defined(CONFIG_LOAD_LINUX) && defined(CONFIG_UNC_IMAGE)
+	image->length = UNC_IMAGE_SIZE;
 #endif
 
 	image->offset = get_image_load_offset(IMG_ADDRESS);
