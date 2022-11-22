@@ -97,9 +97,23 @@ config IMG_ADDRESS
 config JUMP_ADDR
 	string "The External Ram Address to Load Kernel Image"
 	default "0x62000000" if SAMA7G5
+	default "0x20008000" if (SAM9X60 || SAM9X7) && UNC_IMAGE
 	default "0x22000000"
 	help
 	  The entry point to which the bootstrap will pass control.
+
+config UNC_IMAGE
+	bool "Uncompressed Kernel Image"
+	default n
+	help
+	  Load uncompressed kernel Image.
+
+config UNC_IMAGE_SIZE
+	string "Uncompressed Kernel Image Size"
+	depends on UNC_IMAGE && (DATAFLASH || FLASH || NANDFLASH)
+	default "0x600000"
+	help
+	  Uncompressed kernel Image size.
 
 menu "Flattened Device Tree"
 

@@ -266,6 +266,10 @@ int kernel_size(unsigned char *addr)
 	unsigned int size = -1;
 	unsigned int magic = swap_uint32(uimage_header->magic);
 
+#if defined(CONFIG_UNC_IMAGE) && defined(UNC_IMAGE_SIZE)
+	return (int)UNC_IMAGE_SIZE;
+#endif
+
 	if (magic == LINUX_UIMAGE_MAGIC)
 		size = swap_uint32(uimage_header->size)
 			+ sizeof(struct linux_uimage_header);
@@ -289,6 +293,12 @@ static int boot_image_setup(unsigned char *addr, unsigned int *entry)
 	unsigned int src, dest;
 	unsigned int size;
 	unsigned int magic;
+
+#ifdef CONFIG_UNC_IMAGE
+	*entry = (unsigned int)addr;
+	dbg_info("\nKERNEL: Booting uncompressed Image ...\n");
+	return 0;
+#endif
 
 	dbg_loud("KERNEL: try as zImage: magic=%x\n", zimage_header->magic);
 	if (zimage_header->magic == LINUX_ZIMAGE_MAGIC) {
