@@ -196,3 +196,7 @@ endif
 ifeq ($(CONFIG_WDTS), y)
 CPPFLAGS += -DCONFIG_WDTS
 endif
+
+ifeq ($(CONFIG_LCDC), y)
+CPPFLAGS += -DCONFIG_LCDC
+endif

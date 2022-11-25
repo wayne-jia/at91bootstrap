@@ -7,7 +7,7 @@
 #ifndef __AT91_XDMAC_H__
 #define __AT91_XDMAC_H__
 
-/**** Register offset in AT91S_XDMAC structure ***/
+/*** Register offset in AT91S_XDMAC structure ***/
 #define XDMAC_GTYPE	0x00
 #define XDMAC_GCFG	0x04
 #define XDMAC_GWAC	0x08
@@ -27,7 +27,7 @@
 #define XDMAC_GSWF	0x40
 #define XDMAC_CHAN(i)	(0x50 + ((i) * 0x40))
 
-/**** Channel relative registers offsets ***/
+/*** Channel relative registers offsets ***/
 #define XDMAC_CIE	0x00
 #define XDMAC_CID	0x04
 #define XDMAC_CIM	0x08
@@ -115,16 +115,16 @@
 #define XDMAC_CC_MEMSET			(0x1 << 7)
 #define XDMAC_CC_MEMSET_NORMAL_MODE	(0x0 << 7)
 #define XDMAC_CC_MEMSET_HW_MODE		(0x1 << 7)
-#define XDMAC_CC_CSIZE(i)		((0x7 & (i)) << 8)
+#define XDMAC_CC_CSIZE(i)		(((i) & 0x7) << 8)
 #define XDMAC_CC_DWIDTH_OFFSET		11
 #define XDMAC_CC_DWIDTH_MASK		(0x3 << 11)
-#define XDMAC_CC_DWIDTH(i)		((0x3 & (i)) << 11)
+#define XDMAC_CC_DWIDTH(i)		(((i) & 0x3) << 11)
 #define XDMAC_CC_DWIDTH_BYTE		0x0
 #define XDMAC_CC_DWIDTH_HALFWORD	0x0
 #define XDMAC_CC_DWIDTH_WORD		0x2
 #define XDMAC_CC_DWIDTH_DWORD		0x3
-#define XDMAC_CC_SIF(i)			((0x1 & (i)) << 13)
-#define XDMAC_CC_DIF(i)			((0x1 & (i)) << 14)
+#define XDMAC_CC_SIF(i)			(((i) & 0x1) << 13)
+#define XDMAC_CC_DIF(i)			(((i) & 0x1) << 14)
 #define XDMAC_CC_SAM_MASK		(0x3 << 16)
 #define XDMAC_CC_SAM_FIXED_AM		(0x0 << 16)
 #define XDMAC_CC_SAM_INCREMENTED_AM	(0x1 << 16)
@@ -144,7 +144,7 @@
 #define XDMAC_CC_WRIP			(0x1 << 23)
 #define XDMAC_CC_WRIP_DONE		(0x0 << 23)
 #define XDMAC_CC_WRIP_IN_PROGRESS	(0x1 << 23)
-#define XDMAC_CC_PERID(i)		((0x7f & (i)) << 24)
+#define XDMAC_CC_PERID(i)		(((i) & 0x7f) << 24)
 
 /*-------- XDMAC_CDS_MSP: (Offset: 0x7C) -------*/
 #define XDMAC_CDS_MSP_SDS_MSP_MASK	(0xFFFF << 0)
