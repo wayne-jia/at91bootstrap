@@ -21,9 +21,20 @@
 					XDMAC_CC_DWIDTH_BYTE | \
 					XDMAC_CC_MBSIZE_SIXTEEN
 
-int xdmac_chan_init(int chan, unsigned int setting);
+#define XDMAC_TRANSFER_MEM(width)	XDMAC_CC_TYPE_MEM_TRAN | \
+					XDMAC_CC_DAM_INCREMENTED_AM | \
+					XDMAC_CC_SAM_INCREMENTED_AM | \
+					XDMAC_CC_SIF(0)| \
+					XDMAC_CC_DIF(1)| \
+					XDMAC_CC_DWIDTH(width) | \
+					XDMAC_CC_MBSIZE_SIXTEEN
+
+int xdmac_chan_init(int chan, unsigned int config);
+int xdmac_chan_config(int chan, unsigned int config);
 int xdmac_chan_transfer(int chan, const void *src, const void *dest, int size);
 int xdmac_chan_status(int chan);
+int xdmac_chan_status_wait(int chan, unsigned int us);
 void xdmac_chan_free(int chan);
+int xdmac_memcpy(const void *src, const void *dest, int size);
 
 #endif	/* #ifndef __XDMAC_H__ */

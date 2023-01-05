@@ -7,11 +7,13 @@
 #include "common.h"
 #include "hardware.h"
 #include "board.h"
+#include "timer.h"
 #include "xdmac.h"
 
-#ifdef CONFIG_SAM9X60
-#define MAX_CHANNEL	16
-#endif
+#define MAX_CHANNEL CONFIG_SYS_XDMAC_MAX_CHANNEL
+#define MAX_DWIDTH  CONFIG_SYS_XDMAC_MAX_DWIDTH
+
+#define XDMA_TIMEOUT 1000000
 
 static unsigned int channels = 0;
 
@@ -25,7 +27,7 @@ static void xdmac_writel(unsigned int reg, unsigned int value)
 	writel(value, CONFIG_SYS_BASE_XDMAC + reg);
 }
 
-int xdmac_chan_init(int chan, unsigned int setting)
+int xdmac_chan_init(int chan, unsigned int config)
 {
 	unsigned int chan_mask = 1 << chan;
 
@@ -39,7 +41,23 @@ int xdmac_chan_init(int chan, unsigned int setting)
 	xdmac_writel(XDMAC_GD, chan_mask);
 	xdmac_writel(XDMAC_GID, chan_mask);
 
-	xdmac_writel(XDMAC_CHAN(chan) + XDMAC_CC, setting);
+	xdmac_writel(XDMAC_CHAN(chan) + XDMAC_CC, config);
+
+	return 0;
+}
+
+int xdmac_chan_config(int chan, unsigned int config)
+{
+	unsigned int chan_mask = 1 << chan;
+
+	if (!(channels & chan_mask))
+		return -1;
+
+	/* Disable channel and channel interrupt */
+	xdmac_writel(XDMAC_GD, chan_mask);
+	xdmac_writel(XDMAC_GID, chan_mask);
+
+	xdmac_writel(XDMAC_CHAN(chan) + XDMAC_CC, config);
 
 	return 0;
 }
@@ -76,6 +94,19 @@ int xdmac_chan_status(int chan)
 	return 0;
 }
 
+int xdmac_chan_status_wait(int chan, unsigned int us)
+{
+	int ret;
+
+	ret = xdmac_chan_status(chan);
+	while ((us--) && (!ret)) {
+		udelay(1);
+		ret = xdmac_chan_status(chan);
+	}
+
+	return ret;
+}
+
 void xdmac_chan_free(int chan)
 {
 	unsigned int chan_mask = 1 << chan;
@@ -84,5 +115,42 @@ void xdmac_chan_free(int chan)
 	xdmac_writel(XDMAC_CHAN(chan) + XDMAC_CC, 0);
 
 	channels &= ~chan_mask;
+}
+
+int xdmac_memcpy(const void *src, const void *dest, int size)
+{
+	/* Use the last channel for memory copy */
+	unsigned int chan = MAX_CHANNEL - 1;
+	unsigned int config, count, rest;
+	int ret, i;
+
+	/* Find the best transmission width */
+	for (i = MAX_DWIDTH; i >= 0; i--)
+		if (!((unsigned int)src & ((1 << i) - 1)) && !((unsigned int)dest & ((1 << i) - 1)))
+			break;
+
+	config = XDMAC_TRANSFER_MEM(i);
+	count  = size >> i;
+	rest   = size - (count << i);
+
+	if (count) {
+		if (xdmac_chan_init(chan, config) ||
+			xdmac_chan_transfer(chan, src, dest, count))
+			return -1;
+
+		ret = xdmac_chan_status_wait(chan, XDMA_TIMEOUT);
+		xdmac_chan_free(chan);
+
+		if (ret != XDMAC_TRANSFER_COMPLETE)
+			return -1;
+	}
+
+	/* Copy the rest of the data */
+	while (rest) {
+		*(char *)(dest + size - rest) = *(char *)(src + size - rest);
+		rest--;
+	}
+
+	return 0;
 }
 #endif

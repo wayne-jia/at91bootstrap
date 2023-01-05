@@ -120,7 +120,7 @@
 #define XDMAC_CC_DWIDTH_MASK		(0x3 << 11)
 #define XDMAC_CC_DWIDTH(i)		(((i) & 0x3) << 11)
 #define XDMAC_CC_DWIDTH_BYTE		0x0
-#define XDMAC_CC_DWIDTH_HALFWORD	0x0
+#define XDMAC_CC_DWIDTH_HALFWORD	0x1
 #define XDMAC_CC_DWIDTH_WORD		0x2
 #define XDMAC_CC_DWIDTH_DWORD		0x3
 #define XDMAC_CC_SIF(i)			(((i) & 0x1) << 13)
