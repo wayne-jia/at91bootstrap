@@ -1138,4 +1138,21 @@ config LOGO_BL_DELAY
 	help
 	  Delay before turn on the backlight
 	  The unit is milliseconds
+
+choice
+	prompt "LCDC IOSET"
+	depends on LOGO && SAMA5D2
+        default LCDC_IOSET_1
+        help
+          Select the LCDC ioset
+
+config LCDC_IOSET_1
+        bool "IOSET 1 for SAMA5D27-SOM1-EK1"
+        depends on SAMA5D2
+
+config LCDC_IOSET_2
+        bool "IOSET 2 for SAMA5D2-XULT"
+        depends on SAMA5D2
+
+endchoice
 endmenu
