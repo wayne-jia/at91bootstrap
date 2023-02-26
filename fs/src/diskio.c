@@ -63,6 +63,31 @@ DRESULT disk_read(BYTE drv,     /* Physical drive number (0..) */
 }
 
 /*-----------------------------------------------------------------------*/
+/* Read Sector(s) async                                                  */
+/*-----------------------------------------------------------------------*/
+
+#if _USE_ASYNCREAD == 1
+DRESULT disk_read_async(BYTE drv,     /* Physical drive number (0..) */
+                  BYTE *buff,  /* Data buffer to store read data */
+                  DWORD sector, /* Start sector number (LBA) */
+                  BYTE count,   /* Sector count (1..255) */
+                  DWORD flag
+    )
+{
+	if (drv || !count) return RES_PARERR;
+	if (Stat & STA_NOINIT) return RES_NOTRDY;
+
+	if (sdcard_block_read_async((unsigned int)sector,
+				(unsigned int)count,
+				(void *)buff,
+				(int)flag) == count)
+		return RES_OK;
+	else
+		return RES_ERROR;
+}
+#endif /* _USE_ASYNCREAD */
+
+/*-----------------------------------------------------------------------*/
 /* Write Sector(s)                                                       */
 /*-----------------------------------------------------------------------*/
 

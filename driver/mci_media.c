@@ -1242,7 +1242,6 @@ static int sd_cmd_read_single_block(struct sd_card *sdcard,
 	return 1;
 }
 
-#define SUPPORT_MAX_BLOCKS	16
 unsigned int sdcard_block_read(unsigned int start,
 				unsigned int block_count,
 				void *buf)
@@ -1292,3 +1291,73 @@ unsigned int sdcard_block_read(unsigned int start,
 
 	return block_count;
 }
+
+#ifdef CONFIG_SDHC_ASYNC_READ
+#define F_INIT	0
+#define F_READ	1
+#define F_FLUSH	2
+unsigned int sdcard_block_read_async(unsigned int start,
+				unsigned int block_count,
+				void *buf,
+				int flag)
+{
+	static unsigned int c_count = 0, c_start = 0;
+	static void *c_buf = NULL;
+
+	struct sd_card *sdcard = &atmel_sdcard;
+	unsigned int bl_len = sdcard->read_bl_len;
+	int need_refresh = 0;
+	int i, count;
+
+	/* Initialize the read request queue. */
+	if (flag == F_INIT) {
+		c_count = 0;
+		c_start = 0;
+		c_buf = NULL;
+
+		return block_count;
+	}
+
+	if (flag == F_READ) {
+		if (!c_count) {
+			/* Cache this read request. */
+			c_count = block_count;
+			c_start = start;
+			c_buf = buf;
+
+			return block_count;
+		} else {
+			/* Read request can be cached. */
+			if ((start == c_start + c_count) &&
+			    (buf == c_buf + c_count * bl_len)) {
+				c_count += block_count;
+			} else {
+				/* Flush queue, cache current request */
+				need_refresh = 1;
+			}
+		}
+	}
+
+	if ((flag == F_FLUSH) || (c_count >= SUPPORT_MAX_BLOCKS) || need_refresh) {
+		/* Flush read request queue */
+		for (i = 0; i < (c_count - 1); i += count) {
+			count = (c_count > SUPPORT_MAX_BLOCKS) ? SUPPORT_MAX_BLOCKS : c_count;
+			if (sdcard_block_read(c_start + i, count, c_buf + i * bl_len) != count)
+				return 0;
+		}
+
+		c_count = 0;
+		c_start = 0;
+		c_buf = NULL;
+	}
+
+	if (need_refresh) {
+		/* Cache current read request */
+		c_count = block_count;
+		c_start = start;
+		c_buf   = buf;
+	}
+
+	return block_count;
+}
+#endif

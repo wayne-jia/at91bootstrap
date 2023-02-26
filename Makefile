@@ -239,6 +239,10 @@ LOGO_BL := $(strip $(subst ",,$(CONFIG_LOGO_BL)))
 LOGO_BL_DELAY := $(strip $(subst ",,$(CONFIG_LOGO_BL_DELAY)))
 endif
 
+ifeq ($(CONFIG_SDHC_ASYNC_READ), y)
+SDHC_ASYNC_READ_QUEUE_SIZE := $(strip $(subst ",,$(CONFIG_SDHC_ASYNC_READ_QUEUE_SIZE)))
+endif
+
 COBJS-y:= main.o
 SOBJS-y:= crt0_gnu.o
 

@@ -2356,6 +2356,12 @@ FRESULT f_open (
 		fp->cltbl = 0;				/* Normal seek mode */
 #endif
 		fp->fs = dj.fs; fp->id = dj.fs->id;	/* Validate file object */
+
+#if _USE_ASYNCREAD
+		/* Initialize async disk read */
+		if (disk_read_async(fp->fs->drv, (unsigned char *)0, 0, 1, F_INIT) != RES_OK)
+			ABORT(fp->fs, FR_DISK_ERR);
+#endif
 	}
 
 	LEAVE_FF(dj.fs, res);
@@ -2418,7 +2424,11 @@ FRESULT f_read (
 			if (cc) {					/* Read maximum contiguous sectors directly */
 				if (csect + cc > fp->fs->csize)		/* Clip at cluster boundary */
 					cc = fp->fs->csize - csect;
+#if _USE_ASYNCREAD
+				if (disk_read_async(fp->fs->drv, rbuff, sect, (BYTE)cc, F_READ) != RES_OK)
+#else
 				if (disk_read(fp->fs->drv, rbuff, sect, (BYTE)cc) != RES_OK)
+#endif
 					ABORT(fp->fs, FR_DISK_ERR);
 #if !_FS_READONLY && _FS_MINIMIZE <= 2			/* Replace one of the read sectors with cached data if it contains a dirty sector */
 #if _FS_TINY
@@ -2440,6 +2450,10 @@ FRESULT f_read (
 						ABORT(fp->fs, FR_DISK_ERR);
 					fp->flag &= ~FA__DIRTY;
 				}
+#endif
+#if _USE_ASYNCREAD
+				if (disk_read_async(fp->fs->drv, (unsigned char *)0, 0, 1, F_FLUSH) != RES_OK)
+					ABORT(fp->fs, FR_DISK_ERR);
 #endif
 				if (disk_read(fp->fs->drv, fp->buf, sect, 1) != RES_OK)	/* Fill sector cache */
 					ABORT(fp->fs, FR_DISK_ERR);
