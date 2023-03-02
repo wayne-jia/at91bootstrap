@@ -113,7 +113,7 @@ config SDHC_8BIT_SUPPORT
 
 config SDHC_ASYNC_READ
 	bool "Use async read"
-	depends on SAM9X60
+	depends on SAM9X60 || SAMA5D2
 	depends on SDHC
 	default n
 	help
