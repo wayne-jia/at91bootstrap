@@ -26,6 +26,25 @@ config JUMP_ADDR
 	default "0x26F00000" if SAMA5D3X || SAMA5D4 || SAMA5D2
 	default "0x23F00000"
 	help
+	  The entry point to which the bootstrap will pass control,
+	  Or the address to load the RLE image.
+
+config RLE
+	bool
+	default n
+
+config RLE_IMG
+	bool "RLE Compressed Image"
+	select RLE
+	default n
+	help
+	  Decompress the rle image before jumping.
+
+config RLE_ADDR
+	string "The External Ram Address to Extract to"
+	depends on RLE_IMG
+	default "0x23F00000"
+	help
 	  The entry point to which the bootstrap will pass control.
 
 endmenu

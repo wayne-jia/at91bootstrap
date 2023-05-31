@@ -5,21 +5,42 @@
 #include "string.h"
 #include "common.h"
 
+//#define ENABLE_MEMSETX
+
+#ifdef __GNUC__
+  #ifdef CONFIG_THUMB
+    #define MAX_CHUNK_SIZE 48 /* By bytes */
+  #else
+    #define MAX_CHUNK_SIZE 64
+  #endif
+#endif
+
+#ifdef MAX_CHUNK_SIZE
+  #define CHUNK_SIZE (MAX_CHUNK_SIZE / 4)
+#else
+  #define CHUNK_SIZE 8
+#endif
+
+#define C_SIZE (CHUNK_SIZE / sizeof(unsigned long))
+
+struct chunk {
+	unsigned long val[C_SIZE];
+};
+
+static const struct chunk c_zero = {{0}};
+
 void *memcpy(void *dst, const void *src, int cnt)
 {
 	char *d;
 	const char *s;
-	struct chunk {
-		unsigned long val[2];
-	};
-
-	const struct chunk *csrc = (const struct chunk *) src;
+	const struct chunk *csrc = (const struct chunk *)src;
 	struct chunk *cdst = (struct chunk *)dst;
 
-	if (((unsigned long)src & 0xf) == 0 && ((unsigned long)dst & 0xf) == 0) {
-		while (cnt >= sizeof(struct chunk)) {
+	/* Check if the addresses are word-aligned */
+	if (!(((unsigned int)src | (unsigned int)dst) & 0x3)) {
+		while (cnt >= CHUNK_SIZE) {
 			*cdst++ = *csrc++;
-			cnt -= sizeof(struct chunk);
+			cnt -= CHUNK_SIZE;
 		}
 	}
 
@@ -34,13 +55,112 @@ void *memcpy(void *dst, const void *src, int cnt)
 
 void *memset(void *dst, int val, int cnt)
 {
-	char *d = (char *)dst;
+	char *d;
+	const struct chunk *cpattern;
+	struct chunk *cdst = (struct chunk *)dst;
+
+	/* Check if the address is word-aligned */
+	if (!val && (cnt >= CHUNK_SIZE) &&
+		 !((unsigned long)dst & 0x3)) {
+		cpattern = &c_zero;
+
+		while (cnt >= CHUNK_SIZE) {
+			*cdst++ = *cpattern;
+			cnt -= CHUNK_SIZE;
+		}
+	}
+
+	d = (char *) cdst;
 
 	while (cnt--)
 		*d++ = (char)val;
 
 	return dst;
 }
+
+#ifdef ENABLE_MEMSETX
+void *memset2(void *dst, int val, int cnt)
+{
+	char *d = (char *)dst;
+	int i;
+	const struct chunk *cpattern;
+	struct chunk *cdst = (struct chunk *)dst;
+	struct chunk c_tmp;
+
+	i = (int)dst & 0x3;
+	if (i)
+		i = 4 - i;
+
+	if ((cnt - i) >= CHUNK_SIZE) {
+		cnt -= i;
+		while (i--)
+			*d++ = (char)val;
+
+		cdst = (struct chunk *)d;
+
+		if (!val) {
+			cpattern = &c_zero;
+		} else {
+			val &= 0xff;
+			val |= val << 8;
+			val |= val << 16;
+
+			for (i = 0; i < C_SIZE; i++)
+				c_tmp.val[i] = val;
+
+			cpattern = &c_tmp;
+		}
+
+		while (cnt >= CHUNK_SIZE) {
+			*cdst++ = *cpattern;
+			cnt -= CHUNK_SIZE;
+		}
+	}
+
+	d = (char *) cdst;
+
+	while (cnt--)
+		*d++ = (char)val;
+
+	return dst;
+}
+
+void *memset4(void *dst, long val, int cnt)
+{
+	long *d;
+	int i;
+	const struct chunk *cpattern;
+	struct chunk *cdst = (struct chunk *)dst;
+	struct chunk c_tmp;
+
+	/* Check if the address is word-alighed */
+	if ((unsigned long)dst & 0x3)
+		return 0;
+
+	if (cnt >= C_SIZE) {
+		if (!val) {
+			cpattern = &c_zero;
+		} else {
+			for (i = 0; i < C_SIZE; i++)
+				c_tmp.val[i] = val;
+
+			cpattern = &c_tmp;
+		}
+
+		while (cnt >= C_SIZE) {
+			*cdst++ = *cpattern;
+			cnt -= C_SIZE;
+		}
+	}
+
+	d = (long *) cdst;
+
+	while (cnt--)
+		*d++ = val;
+
+	return dst;
+}
+#endif
 
 int memcmp(const void *dst, const void *src, unsigned int cnt)
 {

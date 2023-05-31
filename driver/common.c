@@ -161,4 +161,8 @@ void load_image_done(int retval)
 		usart_puts("Success to recovery\n");
 		while (1);
 	}
+	if (retval == -3) {
+		usart_puts("Failed to decompress image\n");
+		while(1);
+	}
 }

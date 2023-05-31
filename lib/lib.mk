@@ -14,3 +14,4 @@ COBJS-y		+= $(LIB)/consttime_memequal.o
 
 COBJS-$(CONFIG_CRC32)	+= $(LIB)/crc32.o
 COBJS-$(CONFIG_OF_LIBFDT) += $(LIB)/fdt.o
+COBJS-$(CONFIG_RLE)	+= $(LIB)/rle.o

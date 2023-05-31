@@ -17,6 +17,7 @@
 #include "optee.h"
 #include "sfr_aicredir.h"
 #include "lcdc.h"
+#include "rle.h"
 
 #ifdef CONFIG_CACHES
 #include "l1cache.h"
@@ -122,6 +123,13 @@ int main(void)
 	dcache_enable();
 #endif
 	ret = (*load_image)(&image);
+
+#ifdef CONFIG_RLE_IMG
+	if (ret)
+		load_image_done(ret);
+	ret = rle_decompress(&image);
+#endif
+
 #ifdef CONFIG_CACHES
 	icache_disable();
 	dcache_disable();
@@ -159,7 +167,7 @@ int main(void)
 #endif
 
 #ifdef CONFIG_JUMP_TO_SW
-	return JUMP_ADDR;
+	return (int)image.dest;
 #else
 	return 0;
 #endif

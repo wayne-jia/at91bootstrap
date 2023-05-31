@@ -163,6 +163,10 @@ CARD_SUFFIX := $(strip $(subst ",,$(CONFIG_CARD_SUFFIX)))
 LINUX_KERNEL_ARG_STRING := $(strip $(subst ",,$(CONFIG_LINUX_KERNEL_ARG_STRING)))
 LINUX_KERNEL_ARG_STRING_FILE := $(strip $(subst ",,$(CONFIG_LINUX_KERNEL_ARG_STRING_FILE)))
 
+ifeq ($(CONFIG_RLE_IMG), y)
+RLE_ADDR := $(strip $(subst ",,$(CONFIG_RLE_ADDR)))
+endif
+
 # Device definitions
 DEVICENAME:=$(strip $(subst ",,$(CONFIG_DEVICENAME)))
 

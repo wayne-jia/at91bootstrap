@@ -54,6 +54,10 @@ ifneq ($(UNC_IMAGE_SIZE),)
 CPPFLAGS += -DUNC_IMAGE_SIZE=$(UNC_IMAGE_SIZE)
 endif
 
+ifeq ($(CONFIG_RLE_IMG), y)
+CPPFLAGS += -DRLE_ADDR=$(RLE_ADDR)
+endif
+
 ifeq ($(CONFIG_LOGO), y)
 CPPFLAGS += \
 	-DCONFIG_LOGO				\
