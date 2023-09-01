@@ -31,6 +31,14 @@ int assign_drives (int, int);
 DSTATUS disk_initialize (BYTE);
 DSTATUS disk_status (BYTE);
 DRESULT disk_read (BYTE, BYTE*, DWORD, BYTE);
+
+#ifdef _USE_ASYNCREAD
+#define F_INIT  0
+#define F_READ  1
+#define F_FLUSH 2
+DRESULT disk_read_async (BYTE, BYTE*, DWORD, BYTE, DWORD);
+#endif
+
 #if	_READONLY == 0
 DRESULT disk_write (BYTE, const BYTE*, DWORD, BYTE);
 #endif

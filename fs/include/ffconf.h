@@ -51,6 +51,11 @@
 #define	_USE_FASTSEEK	0	/* 0:Disable or 1:Enable */
 /* To enable fast seek feature, set _USE_FASTSEEK to 1. */
 
+#ifdef CONFIG_SDHC_ASYNC_READ
+#define _USE_ASYNCREAD	1	/* 0:Disable or 1:Enable */
+#else
+#define _USE_ASYNCREAD	0
+#endif
 
 
 /*---------------------------------------------------------------------------/

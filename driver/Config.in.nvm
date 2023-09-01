@@ -111,6 +111,22 @@ config SDHC_8BIT_SUPPORT
 	  will not configure SDHC lines 4-7 in SDHC mode, and they can be
 	  used for another interface.
 
+config SDHC_ASYNC_READ
+	bool "Use async read"
+	depends on SAM9X60 || SAMA5D2 || SAM9X7
+	depends on SDHC
+	default n
+	help
+	  Cache more block read requests for multiple-block reads.
+
+config SDHC_ASYNC_READ_QUEUE_SIZE
+	string "Async read queue size"
+	depends on SDHC_ASYNC_READ
+	default "64"
+	help
+	  Warning: this queue is stored in the stack,
+	           excessive size can cause a stack overflow.
+
 config FATFS
 	bool
 	depends on SDCARD

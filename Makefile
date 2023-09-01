@@ -225,6 +225,10 @@ ifeq ($(IMAGE),)
 IMAGE=$(BOOT_NAME).bin
 endif
 
+ifeq ($(CONFIG_SDHC_ASYNC_READ), y)
+SDHC_ASYNC_READ_QUEUE_SIZE := $(strip $(subst ",,$(CONFIG_SDHC_ASYNC_READ_QUEUE_SIZE)))
+endif
+
 COBJS-y:= main.o
 SOBJS-y:= crt0_gnu.o
 
