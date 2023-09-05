@@ -13,13 +13,11 @@
 
 #include "debug.h"
 
-#define CHUNK_SIZE	0x40000
 
 static int sdcard_loadimage(char *filename, BYTE *dest)
 {
 	FIL 	file;
-	UINT	byte_to_read = CHUNK_SIZE;
-	UINT	byte_read;
+	UINT	byte_read = 0;
 	FRESULT	fret;
 	int	ret;
 
@@ -30,13 +28,9 @@ static int sdcard_loadimage(char *filename, BYTE *dest)
 		goto open_fail;
 	}
 
-	do {
-		byte_read = 0;
-		fret = f_read(&file, (void *)(dest), byte_to_read, &byte_read);
-		dest += byte_to_read;
-	} while (byte_read >= byte_to_read);
+	fret = f_read(&file, (void *)(dest), f_size(&file), &byte_read);
 
-	if (fret != FR_OK) {
+	if ((fret != FR_OK) || (byte_read != f_size(&file))){
 		dbg_info("*** FATFS: f_read: error\n");
 		 ret = -1;
 		goto read_fail;
