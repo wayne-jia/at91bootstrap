@@ -189,6 +189,11 @@ config NAND_TIMING_MODE
 	default n
 	depends on SAM9X60 && ONFI_DETECT_SUPPORT
 
+config ALL_TIMING_MODES
+	bool "Enable all timing modes support"
+	default n
+	depends on NAND_TIMING_MODE
+
 config NAND_READ_SEQUENTIAL
 	bool "Support NAND flash read sequential function"
 	default n

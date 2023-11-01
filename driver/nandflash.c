@@ -554,9 +554,17 @@ static int nand_switch_timing_mode(struct nand_chip *chip)
 	 * Timing mode 3 is the highest timing mode that can be supported.
 	 * Timing mode 1&2 are not supported as the code is now.
 	 */
-	if (chip->timingmode < PARAMS_TIMING_MODE_3)
+#ifdef CONFIG_ALL_TIMING_MODES
+	if (chip->timingmode >= PARAMS_TIMING_MODE_5)
+		mode = TIMING_MODE_5;
+	else if (chip->timingmode >= PARAMS_TIMING_MODE_4)
+		mode = TIMING_MODE_4;
+	else
+#endif /* CONFIG_ALL_TIMING_MODES */
+	if (chip->timingmode >= PARAMS_TIMING_MODE_3)
+		mode = TIMING_MODE_3;
+	else
 		return 0;
-	mode = TIMING_MODE_3;
 
 	if (chip->opt_cmd & PARAMS_OPT_CMD_SET_GET_FEATURES) {
 		nand_set_feature_timing_mode(mode);

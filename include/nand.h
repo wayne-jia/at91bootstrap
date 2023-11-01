@@ -13,6 +13,8 @@
 #define TIMING_MODE_1	1
 #define TIMING_MODE_2	2
 #define TIMING_MODE_3	3
+#define TIMING_MODE_4	4
+#define TIMING_MODE_5	5
 
 struct nand_ooblayout {
 	unsigned short	badblockpos;
