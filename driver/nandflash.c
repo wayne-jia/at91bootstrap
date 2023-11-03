@@ -17,6 +17,7 @@
 #include "timer.h"
 #include "fdt.h"
 #include "div.h"
+#include "xdmac.h"
 
 #ifdef CONFIG_NANDFLASH_SMALL_BLOCKS
 static struct nand_chip nand_ids[] = {
@@ -322,7 +323,8 @@ static unsigned short onfi_crc16(unsigned short crc,
 #define		PARAMS_FEATURE_EXTENDED_PARAM	(0x1 << 7)
 
 #define PARAMS_OFFSET_OPT_CMD		8
-#define		PARAMS_OPT_CMD_SET_GET_FEATURES	(0x1 << 2)
+#define		PARAMS_OPT_CMD_READ_CACHE_COMMANDS	(0x1 << 1)
+#define		PARAMS_OPT_CMD_SET_GET_FEATURES		(0x1 << 2)
 
 #define PARAMS_OFFSET_EXT_PARAM_PAGE_LEN	12
 #define PARAMS_OFFSET_PARAMETER_PAGE		14
@@ -502,6 +504,7 @@ static int nandflash_detect_onfi(struct nand_chip *chip)
 #endif /* #ifdef CONFIG_ONFI_DETECT_SUPPORT */
 
 #ifdef CONFIG_NAND_TIMING_MODE
+#ifdef SET_FEATURES_TIMING_MODE
 static void nand_set_feature_timing_mode(unsigned char mode)
 {
 	unsigned char i;
@@ -540,6 +543,7 @@ static unsigned char nand_get_feature_timing_mode(void)
 
 	return buffer[0];
 }
+#endif /* #ifdef SET_FEATURES_TIMING_MODE */
 
 static int nand_switch_timing_mode(struct nand_chip *chip)
 {
@@ -551,15 +555,25 @@ static int nand_switch_timing_mode(struct nand_chip *chip)
 	 * Timing mode 3 is the highest timing mode that can be supported.
 	 * Timing mode 1&2 are not supported as the code is now.
 	 */
-	if (chip->timingmode < PARAMS_TIMING_MODE_3)
+#ifdef CONFIG_ALL_TIMING_MODES
+	if (chip->timingmode >= PARAMS_TIMING_MODE_5)
+		mode = TIMING_MODE_5;
+	else if (chip->timingmode >= PARAMS_TIMING_MODE_4)
+		mode = TIMING_MODE_4;
+	else
+#endif /* CONFIG_ALL_TIMING_MODES */
+	if (chip->timingmode >= PARAMS_TIMING_MODE_3)
+		mode = TIMING_MODE_3;
+	else
 		return 0;
-	mode = TIMING_MODE_3;
 
+#ifdef SET_FEATURES_TIMING_MODE
 	if (chip->opt_cmd & PARAMS_OPT_CMD_SET_GET_FEATURES) {
 		nand_set_feature_timing_mode(mode);
 		if (nand_get_feature_timing_mode() != mode)
 			mode = 0;
 	}
+#endif
 
 	if (mode)
 		nandflash_set_smc_timing(mode);
@@ -635,6 +649,17 @@ static int nand_info_init(struct nand_info *nand, struct nand_chip *chip)
 		nand->command = nand_command;
 		nand->address = nand_address;
 	}
+
+#ifdef CONFIG_NAND_DMA_SUPPORT
+	nand->dmachannel = CONFIG_NAND_DMA_CHANNEL;
+#endif
+
+#ifdef CONFIG_NAND_READ_SEQUENTIAL
+	if (chip->opt_cmd & PARAMS_OPT_CMD_READ_CACHE_COMMANDS)
+		nand->readsequential = 1;
+	else
+		nand->readsequential = 0;
+#endif
 
 	return 0;
 }
@@ -809,15 +834,15 @@ static int nand_read_sector(struct nand_info *nand,
 	return 0;
 }
 #else /* large blocks */
-static int nand_read_sector(struct nand_info *nand,
+static int nand_read_sectors(struct nand_info *nand,
 				unsigned int row_address,
-				unsigned char *buffer, 
-				unsigned int zone_flag)
+				unsigned char *buffer,
+				unsigned int zone_flag,
+				unsigned int count)
 {
 	unsigned int readbytes, i;
 	unsigned int column_address;
 	int ret = 0;
-	unsigned char *pbuf = buffer;
 
 #ifdef CONFIG_USE_PMECC
 	unsigned int usepmecc = 0;
@@ -838,7 +863,7 @@ static int nand_read_sector(struct nand_info *nand,
 
 	case ZONE_INFO:
 		readbytes = nand->oobsize;
-		pbuf += nand->pagesize;
+		buffer += nand->pagesize;
 		column_address = nand->pagesize;
 		break;
 
@@ -863,31 +888,67 @@ static int nand_read_sector(struct nand_info *nand,
 	if (nand_read_status())
 		return -1;
 
-	nand->command(CMD_READ_1);
+	if (count == 1)
+		goto READ_ONE;
 
-#ifdef CONFIG_USE_PMECC
-	if (usepmecc)
-		pmecc_start_data_phase();
-#endif
-	/* Read loop */
-	if (nand->buswidth) {
-		for (i = 0; i < readbytes / 2; i++) {
-			*((short *)pbuf) = read_word();
-			pbuf += 2;
-		}
-	} else {
-		for (i = 0; i < readbytes; i++)
-			*pbuf++ = read_byte();
+	while (count > 0) {
+		if (count == 1)
+			nand->command(CMD_READ_CACHE_LAST);
+		else
+			nand->command(CMD_READ_CACHE_SEQ);
+
+		if (nand_read_status())
+			return -1;
+
+READ_ONE:
+		nand->command(CMD_READ_1);
 
 #ifdef CONFIG_USE_PMECC
 		if (usepmecc)
-			ret = pmecc_process(nand, buffer);
+			pmecc_start_data_phase();
 #endif
-	}
+		/* Read loop */
+		if (nand->buswidth) {
+			for (i = 0; i < readbytes / 2; i++)
+				((unsigned short *)buffer)[i] = read_word();
+		} else {
+#ifdef CONFIG_NAND_DMA_SUPPORT
+			xdmac_chan_transfer(nand->dmachannel,
+				(const void *)CONFIG_SYS_NAND_BASE,
+						buffer, readbytes);
+
+			while (!(ret=xdmac_chan_status(nand->dmachannel)));
+			if (ret != XDMAC_TRANSFER_COMPLETE)
+				return -1;
+#else
+			for (i = 0; i < readbytes; i++)
+				buffer[i] = read_byte();
+#endif
+
+#ifdef CONFIG_USE_PMECC
+			if (usepmecc) {
+				ret = pmecc_process(nand, buffer);
+				if (ret)
+					break;
+			}
+#endif
+		}
+
+		buffer += nand->pagesize;
+		count--;
+	};
 
 	nand_cs_disable();
 
 	return ret;
+}
+
+static int nand_read_sector(struct nand_info *nand,
+				unsigned int row_address,
+				unsigned char *buffer,
+				unsigned int zone_flag)
+{
+	return nand_read_sectors(nand, row_address, buffer, zone_flag, 1);
 }
 #endif /* #ifdef CONFIG_NANDFLASH_SMALL_BLOCKS */
 
@@ -921,6 +982,20 @@ static void nand_read_ecc(struct nand_ooblayout *ooblayout,
 
 	for (i = 0; i < ooblayout->eccbytes; i++)
 		ecc[i] = buffer[ooblayout->eccpos[i]];
+}
+#endif
+
+#ifdef CONFIG_NAND_READ_SEQUENTIAL
+static int nand_read_block(struct nand_info *nand,
+				unsigned int block,
+				unsigned int page,
+				unsigned int zone_flag,
+				unsigned char *buffer,
+				unsigned int count)
+{
+	unsigned int row_address = block * nand->pages_block + page;
+
+	return nand_read_sectors(nand, row_address, buffer, ZONE_DATA, count);
 }
 #endif
 
@@ -1022,9 +1097,7 @@ static int nand_loadimage(struct nand_info *nand,
 	unsigned char *buffer = dest;
 	unsigned int readsize;
 	unsigned int block = 0;
-	unsigned int page;
 	unsigned int start_page = 0;
-	unsigned int end_page;
 	unsigned int numpages = 0;
 	unsigned int offsetpage = 0;
 	unsigned int block_remaining = nand->blocksize
@@ -1046,8 +1119,6 @@ static int nand_loadimage(struct nand_info *nand,
 		if (offsetpage)
 			numpages++;
 
-		end_page = start_page + numpages;
-
 		/* check the bad block */
 		while (1) {
 			if (nand_check_badblock(nand,
@@ -1060,14 +1131,27 @@ static int nand_loadimage(struct nand_info *nand,
 		}
 
 		/* read pages of a block */
-		for (page = start_page; page < end_page; page++) {
-			ret = nand_read_page(nand, block, page,
-						ZONE_DATA, buffer);
+#ifdef CONFIG_NAND_READ_SEQUENTIAL
+		if (nand->readsequential) {
+			ret = nand_read_block(nand, block, start_page, ZONE_DATA,
+						buffer, numpages);
 			if (ret)
 				return -1;
 			else
-				buffer += nand->pagesize;
+				buffer += nand->pagesize * numpages;
+		} else
+#endif
+		{
+			for (int i = 0; i < numpages; i++) {
+				ret = nand_read_page(nand, block, start_page + i,
+							ZONE_DATA, buffer);
+				if (ret)
+					return -1;
+				else
+					buffer += nand->pagesize;
+			}
 		}
+
 		length -= readsize;
 
 		block++;
@@ -1127,6 +1211,15 @@ int load_nandflash(struct image_info *image)
 #ifdef CONFIG_ENABLE_SW_ECC
 	dbg_info("NAND: Using Software ECC\n");
 #endif
+
+#ifdef CONFIG_NAND_DMA_SUPPORT
+	ret = xdmac_chan_init(nand.dmachannel, XDMAC_TRANSFER_NAND_8BIT);
+	if (ret) {
+		dbg_info("NAND: Error init DMA channel\n");
+		return -1;
+	}
+#endif
+
 
 #if defined(CONFIG_LOAD_LINUX) || defined(CONFIG_LOAD_ANDROID)
 	int length = update_image_length(&nand,

@@ -13,6 +13,8 @@
 #define TIMING_MODE_1	1
 #define TIMING_MODE_2	2
 #define TIMING_MODE_3	3
+#define TIMING_MODE_4	4
+#define TIMING_MODE_5	5
 
 struct nand_ooblayout {
 	unsigned short	badblockpos;
@@ -52,6 +54,13 @@ struct nand_info {
 	/* Used by PMECC */
 	int			ecc_sector_size;
 	int			ecc_err_bits;
+
+#ifdef CONFIG_NAND_DMA_SUPPORT
+	int	dmachannel;
+#endif
+#ifdef CONFIG_NAND_READ_SEQUENTIAL
+	int readsequential;
+#endif
 };
 
 #define ZONE_DATA			0x01    /* Sector data zone */
@@ -64,6 +73,9 @@ struct nand_info {
 /* Nand flash commands */
 #define CMD_READ_1			0x00
 #define CMD_READ_2			0x30
+
+#define CMD_READ_CACHE_SEQ		0x31
+#define CMD_READ_CACHE_LAST		0x3F
 
 #define CMD_READID			0x90
 

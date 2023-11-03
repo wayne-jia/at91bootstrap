@@ -18,6 +18,7 @@
 #include "sdramc.h"
 #include "timer.h"
 #include "watchdog.h"
+#include "xdmac.h"
 #include "string.h"
 #include "sam9x60_board.h"
 #include "board_hw_info.h"
@@ -279,6 +280,13 @@ void twi_init()
 }
 #endif
 
+#ifdef CONFIG_XDMAC
+void xdmac_hw_init(void)
+{
+	pmc_enable_periph_clock(CONFIG_SYS_ID_XDMAC, PMC_PERIPH_CLK_DIVIDER_NA);
+}
+#endif
+
 void hw_init(void)
 {
 	unsigned int reg;
@@ -335,6 +343,10 @@ void hw_init(void)
 	writel(reg, (AT91C_BASE_SFR + SFR_DDRCFG));
 	/* Initialize SDRAM Controller */
 	sdramc_init();
+#endif
+
+#ifdef CONFIG_XDMAC
+	xdmac_hw_init();
 #endif
 
 #ifdef CONFIG_BOARD_QUIRK_SAM9X60_EK
@@ -470,34 +482,55 @@ void nandflash_set_smc_timing(unsigned int mode)
 {
 	/* Configure SMC CS3 for NAND */
 #ifdef CONFIG_NAND_TIMING_MODE
-	if (mode == TIMING_MODE_3) {
-		writel(AT91C_SMC_NWESETUP_(2), AT91C_BASE_SMC + SMC_SETUP3);
+#ifdef CONFIG_ALL_TIMING_MODES
+	if (mode == TIMING_MODE_5) {
+		writel(AT91C_SMC_NWESETUP_(1), AT91C_BASE_SMC + SMC_SETUP3);
 
-		writel(AT91C_SMC_NWEPULSE_(3) | AT91C_SMC_NCS_WRPULSE_(7) |
-		       AT91C_SMC_NRDPULSE_(4) | AT91C_SMC_NCS_RDPULSE_(6),
+		writel(AT91C_SMC_NWEPULSE_(2) | AT91C_SMC_NCS_WRPULSE_(5) |
+		       AT91C_SMC_NRDPULSE_(3) | AT91C_SMC_NCS_RDPULSE_(4),
 		       AT91C_BASE_SMC + SMC_PULSE3);
 
-		writel(AT91C_SMC_NWECYCLE_(7) | AT91C_SMC_NRDCYCLE_(6),
+		writel(AT91C_SMC_NWECYCLE_(5) | AT91C_SMC_NRDCYCLE_(4),
 		       AT91C_BASE_SMC + SMC_CYCLE3);
 
 		writel(AT91C_SMC_READMODE | AT91C_SMC_WRITEMODE |
 		       AT91C_SMC_TDFEN | AT91_SMC_TDF_(15),
 		       AT91C_BASE_SMC + SMC_CTRL3);
-	} else {
-		writel(AT91C_SMC_NWESETUP_(4), AT91C_BASE_SMC + SMC_SETUP3);
-
-		writel(AT91C_SMC_NWEPULSE_(10) | AT91C_SMC_NCS_WRPULSE_(20) |
-		       AT91C_SMC_NRDPULSE_(10) | AT91C_SMC_NCS_RDPULSE_(20),
-		       AT91C_BASE_SMC + SMC_PULSE3);
-
-		writel(AT91C_SMC_NWECYCLE_(20) | AT91C_SMC_NRDCYCLE_(20),
-		       AT91C_BASE_SMC + SMC_CYCLE3);
-
-		writel(AT91C_SMC_READMODE | AT91C_SMC_WRITEMODE |
-		       AT91C_SMC_TDFEN | AT91_SMC_TDF_(15),
-		       AT91C_BASE_SMC + SMC_CTRL3);
+		return;
 	}
-#else
+	if (mode == TIMING_MODE_4) {
+		writel(AT91C_SMC_NWESETUP_(1), AT91C_BASE_SMC + SMC_SETUP3);
+
+		writel(AT91C_SMC_NWEPULSE_(3) | AT91C_SMC_NCS_WRPULSE_(6) |
+		       AT91C_SMC_NRDPULSE_(3) | AT91C_SMC_NCS_RDPULSE_(5),
+		       AT91C_BASE_SMC + SMC_PULSE3);
+
+		writel(AT91C_SMC_NWECYCLE_(6) | AT91C_SMC_NRDCYCLE_(5),
+		       AT91C_BASE_SMC + SMC_CYCLE3);
+
+		writel(AT91C_SMC_READMODE | AT91C_SMC_WRITEMODE |
+		       AT91C_SMC_TDFEN | AT91_SMC_TDF_(15),
+		       AT91C_BASE_SMC + SMC_CTRL3);
+		return;
+	}
+#endif /* #ifdef CONFIG_ALL_TIMING_MODES */
+	if (mode == TIMING_MODE_3) {
+		writel(AT91C_SMC_NWESETUP_(3), AT91C_BASE_SMC + SMC_SETUP3);
+
+		writel(AT91C_SMC_NWEPULSE_(4) | AT91C_SMC_NCS_WRPULSE_(11) |
+		       AT91C_SMC_NRDPULSE_(4) | AT91C_SMC_NCS_RDPULSE_(8),
+		       AT91C_BASE_SMC + SMC_PULSE3);
+
+		writel(AT91C_SMC_NWECYCLE_(11) | AT91C_SMC_NRDCYCLE_(8),
+		       AT91C_BASE_SMC + SMC_CYCLE3);
+
+		writel(AT91C_SMC_READMODE | AT91C_SMC_WRITEMODE |
+		       AT91C_SMC_TDFEN | AT91_SMC_TDF_(15),
+		       AT91C_BASE_SMC + SMC_CTRL3);
+		return;
+	}
+#endif /* #ifdef CONFIG_NAND_TIMING_MODE */
+
 	writel(AT91C_SMC_NWESETUP_(4), AT91C_BASE_SMC + SMC_SETUP3);
 
 	writel(AT91C_SMC_NWEPULSE_(10) | AT91C_SMC_NCS_WRPULSE_(20) |
@@ -510,9 +543,7 @@ void nandflash_set_smc_timing(unsigned int mode)
 	writel(AT91C_SMC_READMODE | AT91C_SMC_WRITEMODE |
 	       AT91C_SMC_TDFEN | AT91_SMC_TDF_(15),
 	       AT91C_BASE_SMC + SMC_CTRL3);
-#endif /* #ifdef CONFIG_NAND_TIMING_MODE */
 }
-
 #endif /* #ifdef CONFIG_NANDFLASH */
 
 #ifdef CONFIG_MMU

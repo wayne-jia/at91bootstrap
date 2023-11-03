@@ -187,10 +187,30 @@ config ONFI_DETECT_SUPPORT
 config NAND_TIMING_MODE
 	bool "Support NAND flash timing mode function"
 	default n
-	depends on SAM9X60 && ONFI_DETECT_SUPPORT
+	depends on (SAM9X60 || SAM9X7) && ONFI_DETECT_SUPPORT
+
+config SET_FEATURES_TIMING_MODE
+	bool "Switch with set features command"
+	default n
+	depends on NAND_TIMING_MODE
+
+config ALL_TIMING_MODES
+	bool "Enable all timing modes support"
+	default n
+	depends on NAND_TIMING_MODE
+
+config NAND_READ_SEQUENTIAL
+	bool "Support NAND flash read sequential function"
+	default n
+	depends on (SAM9X60 || SAM9X7) && ONFI_DETECT_SUPPORT
 
 config USE_ON_DIE_ECC_SUPPORT
 	bool "Support to use NAND flash On-Die ECC"
 	default y
+
+config NAND_DMA_SUPPORT
+	bool "Support NAND flash DMA transfer"
+	default n
+	depends on (SAM9X60 || SAM9X7) && XDMAC
 
 endmenu
