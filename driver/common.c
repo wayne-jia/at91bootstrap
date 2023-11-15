@@ -25,6 +25,10 @@ char cmdline_args[CMDLINE_BUF_LEN];
 #endif
 #endif
 
+#if defined(CONFIG_LOGO) && defined(CONFIG_SDCARD)
+char logo_filename[FILENAME_BUF_LEN];
+#endif
+
 #ifdef CONFIG_LOAD_SW
 
 load_function get_image_load_func(void)
@@ -65,6 +69,10 @@ void init_load_image(struct image_info *image)
 #endif
 #endif
 
+#if defined(CONFIG_LOGO) && defined(CONFIG_SDCARD)
+	memset(logo_filename,   0, FILENAME_BUF_LEN);
+#endif
+
 #if defined(CONFIG_DATAFLASH) || defined(CONFIG_NANDFLASH) || defined(CONFIG_FLASH)
 
 #if !defined(CONFIG_LOAD_LINUX) && !defined(CONFIG_LOAD_ANDROID)
@@ -102,6 +110,17 @@ void init_load_image(struct image_info *image)
 	load_image = &load_kernel;
 #else
 	load_image = get_image_load_func();
+#endif
+
+#ifdef CONFIG_LOGO
+#ifdef CONFIG_NANDFLASH
+	image->logo_offset = LOGO_ADDRESS;
+#endif
+#ifdef CONFIG_SDCARD
+	image->logo_filename = logo_filename;
+	strcpy(image->logo_filename, LOGO_NAME);
+#endif
+	image->logo_dest = (unsigned char *)(LOGO_FB_ADDRESS + 16);
 #endif
 }
 #endif /* CONFIG_LOAD_SW */

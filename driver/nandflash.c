@@ -18,6 +18,7 @@
 #include "fdt.h"
 #include "div.h"
 #include "xdmac.h"
+#include "lcdc.h"
 
 #ifdef CONFIG_NANDFLASH_SMALL_BLOCKS
 static struct nand_chip nand_ids[] = {
@@ -1220,6 +1221,21 @@ int load_nandflash(struct image_info *image)
 	}
 #endif
 
+#ifdef CONFIG_LOGO
+	ret = nand_loadimage(&nand, image->logo_offset, nand.pagesize,
+				image->logo_dest);
+	if (!ret) {
+		int length = bmp_size(image->logo_dest);
+		if (length > nand.pagesize)
+			ret = nand_loadimage(&nand,
+					image->logo_offset + nand.pagesize,
+					length - nand.pagesize,
+					image->logo_dest + nand.pagesize);
+	}
+
+	if (!ret)
+		lcdc_display();
+#endif
 
 #if defined(CONFIG_LOAD_LINUX) || defined(CONFIG_LOAD_ANDROID)
 	int length = update_image_length(&nand,
