@@ -9,6 +9,7 @@
 #include "spi_flash/spi_nor.h"
 #include "debug.h"
 #include "timer.h"
+#include "xdmac.h"
 
 #include "qspi-common.h"
 
@@ -145,6 +146,7 @@ static int qspi_exec(void *priv, const struct spi_flash_command *cmd)
 	unsigned int offset;
 	unsigned int sr, imr;
 	unsigned int timeout = 1000000;
+	int ret = 0;
 
 	dbg_very_loud("at91-qspi: cmd->inst = %x\n", cmd->inst);
 
@@ -273,13 +275,31 @@ static int qspi_exec(void *priv, const struct spi_flash_command *cmd)
 	(void)qspi_readl(qspi, QSPI_IFR);
 
 	/* Stop here for Continuous Read. */
-	if (cmd->tx_data)
+	if (cmd->tx_data) {
 		/* Write data. */
+#ifdef CONFIG_XDMAC
+		if ((cmd->flags & SFLASH_TYPE_MASK) == SFLASH_TYPE_WRITE)
+			ret = xdmac_memcpy((const void *)(cmd->tx_data),
+						qspi->mem + offset,
+						cmd->data_len);
+		else
+			memcpy(qspi->mem + offset, cmd->tx_data, cmd->data_len);
+#else
 		memcpy(qspi->mem + offset, cmd->tx_data, cmd->data_len);
-	else if (cmd->rx_data)
+#endif
+	} else if (cmd->rx_data) {
 		/* Read data. */
+#ifdef CONFIG_XDMAC
+		if ((cmd->flags & SFLASH_TYPE_MASK) == SFLASH_TYPE_READ)
+			ret = xdmac_memcpy((const void *)(qspi->mem + offset),
+						cmd->rx_data,
+						cmd->data_len);
+		else
+			memcpy(cmd->rx_data, qspi->mem + offset, cmd->data_len);
+#else
 		memcpy(cmd->rx_data, qspi->mem + offset, cmd->data_len);
-	else
+#endif
+	} else
 		/* Stop here for continuous read */
 		return 0;
 
@@ -298,7 +318,7 @@ no_data:
 	if (!timeout)
 		dbg_info("Timeout waiting Instruction End! sr = %08x\n", sr);
 
-	return 0;
+	return ret;
 }
 
 const struct spi_ops qspi_ops = {
