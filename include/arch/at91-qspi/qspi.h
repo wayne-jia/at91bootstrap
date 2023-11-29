@@ -102,7 +102,9 @@
 #define		QSPI_IFR_OPTL_8BIT		(0x3 << 8)
 #define	QSPI_IFR_TFRTYPE_MEM	(0x1 << 12)
 #define	QSPI_IFR_CRM		(0x1 << 14)	/* Continuous Read Mode */
+#define	QSPI_IFR_DDREN		(0x1 << 15)	/* DDR Mode Enable */
 #define	QSPI_IFR_NBDUM_(x)	((x) << 16)	/* Number Of Dummy Cycles */
+#define	QSPI_IFR_DDRCMDEN	(0x1 << 26)	/* DDR Mode Command Enable */
 
 #define QSPI_SMR_SCREN		(0x1 << 0)
 #define QSPI_SMR_RVDIS		(0x1 << 1)

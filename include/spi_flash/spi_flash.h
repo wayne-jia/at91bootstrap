@@ -36,6 +36,7 @@
 #define SFLASH_INST_FAST_READ_1_2_2		0xBB
 #define SFLASH_INST_FAST_READ_1_1_4		0x6B
 #define SFLASH_INST_FAST_READ_1_4_4		0xEB
+#define SFLASH_INST_FAST_READ_1_4D_4D		0xED
 #define SFLASH_INST_READ_SR			0x05
 #define SFLASH_INST_READ_CR			0x35
 #define SFLASH_INST_READ_SR2			0x3F
@@ -111,6 +112,9 @@
 /**
  * enum spi_flash_protocol - SPI flash command protocol
  */
+#define SFLASH_PROTO_IS_DTR_BSWAP16 (0x1UL << 25) /* Byte order is swapped */
+#define SFLASH_PROTO_IS_DTR			(0x1UL << 24) /* Double Transfer Rate */
+
 #define SFLASH_PROTO_INST_SHIFT	16
 #define SFLASH_PROTO_INST_MASK	(0xFFUL << 16)
 #define SFLASH_PROTO_INST(nbits)					\
@@ -134,6 +138,10 @@
 	 SFLASH_PROTO_ADDR(addr_nbits) |			\
 	 SFLASH_PROTO_DATA(data_nbits))
 
+#define SFLASH_PROTO_DTR(inst_nbits, addr_nbits, data_nbits)	\
+	(SFLASH_PROTO_IS_DTR |			\
+	 SFLASH_PROTO(inst_nbits, addr_nbits, data_nbits))
+
 enum spi_flash_protocol {
 	SFLASH_PROTO_1_1_1 = SFLASH_PROTO(1, 1, 1),
 	SFLASH_PROTO_1_1_2 = SFLASH_PROTO(1, 1, 2),
@@ -142,6 +150,7 @@ enum spi_flash_protocol {
 	SFLASH_PROTO_1_4_4 = SFLASH_PROTO(1, 4, 4),
 	SFLASH_PROTO_2_2_2 = SFLASH_PROTO(2, 2, 2),
 	SFLASH_PROTO_4_4_4 = SFLASH_PROTO(4, 4, 4),
+	SFLASH_PROTO_1_4D_4D = SFLASH_PROTO_DTR(1, 4, 4),
 };
 
 static inline
