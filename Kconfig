@@ -1107,7 +1107,7 @@ config LOGO_NAME
 
 config LOGO_ADDRESS
 	string "Logo file address"
-	depends on LOGO && NANDFLASH
+	depends on LOGO && (DATAFLASH || NANDFLASH)
 	default "0x40000"
 	help
 	  The address of the image file in the Flash

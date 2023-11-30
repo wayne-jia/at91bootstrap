@@ -55,7 +55,7 @@ struct image_info
 #endif
 
 #ifdef CONFIG_LOGO
-#if defined(CONFIG_DATAFLASH) || defined(CONFIG_NANDFLASH) || defined(CONFIG_FLASH)
+#if defined(CONFIG_DATAFLASH) || defined(CONFIG_NANDFLASH)
 	unsigned int logo_offset;
 #endif
 #ifdef CONFIG_SDCARD

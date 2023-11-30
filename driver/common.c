@@ -113,7 +113,7 @@ void init_load_image(struct image_info *image)
 #endif
 
 #ifdef CONFIG_LOGO
-#ifdef CONFIG_NANDFLASH
+#if defined(CONFIG_DATAFLASH) || defined(CONFIG_NANDFLASH)
 	image->logo_offset = LOGO_ADDRESS;
 #endif
 #ifdef CONFIG_SDCARD
