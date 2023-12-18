@@ -505,7 +505,7 @@ static int nandflash_detect_onfi(struct nand_chip *chip)
 #endif /* #ifdef CONFIG_ONFI_DETECT_SUPPORT */
 
 #ifdef CONFIG_NAND_TIMING_MODE
-#ifdef SET_FEATURES_TIMING_MODE
+#ifdef CONFIG_SET_FEATURES_TIMING_MODE
 static void nand_set_feature_timing_mode(unsigned char mode)
 {
 	unsigned char i;
@@ -544,7 +544,7 @@ static unsigned char nand_get_feature_timing_mode(void)
 
 	return buffer[0];
 }
-#endif /* #ifdef SET_FEATURES_TIMING_MODE */
+#endif /* #ifdef CONFIG_SET_FEATURES_TIMING_MODE */
 
 static int nand_switch_timing_mode(struct nand_chip *chip)
 {
@@ -568,7 +568,7 @@ static int nand_switch_timing_mode(struct nand_chip *chip)
 	else
 		return 0;
 
-#ifdef SET_FEATURES_TIMING_MODE
+#ifdef CONFIG_SET_FEATURES_TIMING_MODE
 	if (chip->opt_cmd & PARAMS_OPT_CMD_SET_GET_FEATURES) {
 		nand_set_feature_timing_mode(mode);
 		if (nand_get_feature_timing_mode() != mode)
