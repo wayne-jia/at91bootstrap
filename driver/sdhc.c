@@ -130,8 +130,9 @@
 #define	SDMMC_PSR_CARDSS	(0x1 << 17)	/* Card State Stable */
 #define	SDMMC_PSR_CARDDPL	(0x1 << 18)	/* Card Detect Pin Level */
 #define	SDMMC_PSR_WRPPL		(0x1 << 19)	/* Write Protect Pin Level */
+#define	SDMMC_PSR_DAT0LL	(0x1 << 20)	/* DAT[0] Line Level */
 #define	SDMMC_PSR_DATLL		(0xf << 20)	/* DAT[3:0] Line Level */
-#define	SDMMC_PSR_CMDLL		(0xf << 24)	/* CMD Line Level */
+#define	SDMMC_PSR_CMDLL		(0x1 << 24)	/* CMD Line Level */
 
 /* SDMMC_NISTR/SDMMC_NISTER/SDMMC_NISIER(e.MMC) */
 #define	SDMMC_NISTR_CMDC	(0x1 << 0)	/* Command Complete */
@@ -195,6 +196,13 @@
 #define	SDMMC_SRR_SWRSTALL	(0x1 << 0)	/* Software reset for All */
 #define	SDMMC_SRR_SWRSTCMD	(0x1 << 1)	/* Software reset for CMD line */
 #define	SDMMC_SRR_SWRSTDAT	(0x1 << 2)	/* Software reset for DAT line */
+
+/*	SDMMC_HC2R */
+#define SDMMC_HC2R_UHSMS	(0x7 << 0)
+#define SDMMC_HC2R_VS18EN	(0x1 << 3)
+#define SDMMC_HC2R_DRVSEL	(0x3 << 4)
+#define SDMMC_HC2R_EXTUN	(0x1 << 6)
+#define SDMMC_HC2R_SCLKSEL	(0x1 << 7)
 
 /* SDMMC_CA0R */
 #define	SDMMC_CA0R_TEOCLKF	(0x3f << 0)	/* Timeout Clock Frequency */
@@ -335,6 +343,12 @@ static int sdhc_set_clock(struct sd_card *sdcard, unsigned int clock)
 	if (!timeout)
 		dbg_info("SDHC: Timeout waiting for CMD and DAT Inhibit bits\n");
 
+	/* Use this to disable the SD clock */
+	if (!clock) {
+		sdhc_writew(SDMMC_CCR, sdhc_readw(SDMMC_CCR) & ~SDMMC_CCR_SDCLKEN);
+		return 0;
+	}
+
 	reg = sdhc_readw(SDMMC_CCR);
 	reg &= ~SDMMC_CCR_SDCLKEN;
 	sdhc_writew(SDMMC_CCR, reg);
@@ -428,6 +442,93 @@ static int sdhc_set_ddr(struct sd_card *sdcard)
 	return 0;
 }
 
+static int sdhc_set_1v8(struct sd_card *sdcard)
+{
+	if (!(sdcard->host->caps_voltages | SD_OCR_VDD_165_195))
+		return -1;
+
+	sdhc_writew(SDMMC_HC2R, sdhc_readw(SDMMC_HC2R) | SDMMC_HC2R_VS18EN);
+	sdcard->v1v8 = 1;
+
+	return 0;
+}
+
+static void sdhc_set_uhs_mode(struct sd_card *sdcard, unsigned int mode)
+{
+	sdhc_writew(SDMMC_CCR, sdhc_readw(SDMMC_CCR) & ~SDMMC_CCR_SDCLKEN);
+	sdhc_writew(SDMMC_HC2R, (sdhc_readw(SDMMC_HC2R) & ~SDMMC_HC2R_UHSMS) | mode);
+	sdhc_writew(SDMMC_CCR, sdhc_readw(SDMMC_CCR) | SDMMC_CCR_SDCLKEN);
+}
+
+static void sdhc_set_uhs_driver(struct sd_card *sdcard, unsigned int driver)
+{
+	sdhc_writew(SDMMC_HC2R, (sdhc_readw(SDMMC_HC2R) & ~SDMMC_HC2R_DRVSEL) | (driver << 4));
+}
+
+static int sdhc_exec_tuning(struct sd_card *sdcard, unsigned int cmd)
+{
+	unsigned int status;
+	unsigned int cmd_reg;
+	unsigned int timeout;
+	int loop = 40;
+
+	timeout = 100000;
+	while ((--timeout) &&
+	       (sdhc_readl(SDMMC_PSR) & (SDMMC_PSR_CMDINHC | SDMMC_PSR_CMDINHD)))
+		;
+
+	if (!timeout)
+		dbg_info("SDHC: Timeout waiting for CMD and DAT Inhibit bits when tuning\n");
+
+	/* Execute Tuning */
+	sdhc_writew(SDMMC_HC2R, sdhc_readw(SDMMC_HC2R) | SDMMC_HC2R_EXTUN);
+
+	cmd_reg = SDMMC_CR_CMDIDX_(cmd)
+				| SDMMC_CR_DPSEL
+				| SDMMC_CR_CMDICEN
+				| SDMMC_CR_CMDCCEN
+				| SDMMC_CR_RESPTYP_RL48;
+
+	sdhc_writeb(SDMMC_TCR, 0xe);
+	sdhc_writew(SDMMC_BSR, 64);
+	sdhc_writew(SDMMC_TMR, SDMMC_TMR_DTDSEL_READ);
+	sdhc_writel(SDMMC_ARG1R, 0);
+
+	while (loop--) {
+		sdhc_writew(SDMMC_CR, cmd_reg);
+
+		timeout = 100000;
+		do {
+			status = sdhc_readw(SDMMC_NISTR);
+		} while ((--timeout) && !(status & SDMMC_NISTR_BRDRDY));
+
+		if (!timeout)
+			dbg_very_loud("SDHC: Timeout waiting for tuning complete\n");
+
+		/* Unset SDMMC_HC2R_EXTUN to check the tuning data */
+		/*
+		for (i = 0; i < 4; i++)
+			dbg_info("%x %x %x %x\n\r",
+				swap_uint32(sdhc_readl(SDMMC_BDPR)),
+				swap_uint32(sdhc_readl(SDMMC_BDPR)),
+				swap_uint32(sdhc_readl(SDMMC_BDPR)),
+				swap_uint32(sdhc_readl(SDMMC_BDPR)));
+		*/
+
+		sdhc_writew(SDMMC_NISTR, status);
+
+		if (!(sdhc_readw(SDMMC_HC2R) & SDMMC_HC2R_EXTUN))
+			break;
+	}
+
+	return (sdhc_readw(SDMMC_HC2R) & SDMMC_HC2R_SCLKSEL) ? 0 : -1;
+}
+
+static int sdhc_card_busy(struct sd_card *sdcard)
+{
+	return !(sdhc_readl(SDMMC_PSR) & SDMMC_PSR_DAT0LL);
+}
+
 static int sdhc_host_capability(struct sd_card *sdcard)
 {
 	struct sd_host *host = sdcard->host;
@@ -460,8 +561,10 @@ static int sdhc_host_capability(struct sd_card *sdcard)
 		host->caps_voltages |= SD_OCR_VDD_32_33 | SD_OCR_VDD_33_34;
 	if (caps & SDMMC_CA0R_V30VSUP)
 		host->caps_voltages |= SD_OCR_VDD_29_30 | SD_OCR_VDD_30_31;
+#ifdef CONFIG_SDHC_18V
 	if (caps & SDMMC_CA0R_V18VSUP)
 		host->caps_voltages |= SD_OCR_VDD_165_195;
+#endif
 
 	caps = sdhc_readl(SDMMC_CA1R);
 
@@ -469,6 +572,21 @@ static int sdhc_host_capability(struct sd_card *sdcard)
 						& SDMMC_CA1R_CLKMULT_MSK;
 	if (caps & SDMMC_CA1R_DDR50SUP)
 		host->caps_ddr = 1;
+
+#ifdef CONFIG_SDHC_UHS
+	if ((host->caps_voltages | SD_OCR_VDD_165_195) &&
+		(host->caps_bus_width | BUS_WIDTH_4_BIT) &&
+		(caps & SDMMC_CA1R_SDR50SUP) &&
+		(caps & SDMMC_CA1R_SDR104SUP) &&
+		(caps & SDMMC_CA1R_DDR50SUP))
+		host->caps_uhs = 1;
+
+#if defined(CONFIG_SDHC_CLK_200MHZ)
+	host->caps_uhs_clock = 200000000;
+#elif defined(CONFIG_SDHC_CLK_100MHZ)
+	host->caps_uhs_clock = 100000000;
+#endif
+#endif
 
 	return 0;
 }
@@ -809,6 +927,11 @@ static struct host_ops sdhc_ops = {
 	.set_clock = sdhc_set_clock,
 	.set_bus_width = sdhc_set_bus_width,
 	.set_ddr = sdhc_set_ddr,
+	.set_1v8 = sdhc_set_1v8,
+	.set_uhs_mode = sdhc_set_uhs_mode,
+	.set_uhs_driver = sdhc_set_uhs_driver,
+	.exec_tuning = sdhc_exec_tuning,
+	.card_busy = sdhc_card_busy,
 };
 
 int sdcard_register_sdhc(struct sd_card *sdcard)

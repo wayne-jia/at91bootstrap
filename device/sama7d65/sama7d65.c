@@ -524,7 +524,7 @@ void at91_board_set_dtb_name(char *of_name)
 }
 #endif
 
-#define ATMEL_SDHC_GCKDIV_VALUE		3
+#define ATMEL_SDHC_GCKDIV_VALUE		0
 
 void at91_sdhc_hw_init(void)
 {
@@ -1027,7 +1027,7 @@ void hw_init(void)
 
 	/* Configure & Enable BAUD PLL */
 	buadpll_config.mul = 32; /* (32+1) * 24 = 800 */
-	buadpll_config.div = 2; /* 800 / 3 = 266 MHz */
+	buadpll_config.div = 3; /* 800 / 4 = 200 MHz */
 	buadpll_config.count = 0x3f;
 	buadpll_config.fracr = 0x155550;
 	buadpll_config.acr = 0x00070010;

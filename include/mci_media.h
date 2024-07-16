@@ -16,11 +16,13 @@
 #define SD_CMD_SEND_IF_COND		8
 #define SD_CMD_SEND_CSD			9
 #define SD_CMD_SEND_CID			10
+#define SD_CMD_VOLTAGE_SWITCH		11
 #define SD_CMD_STOP_TRANSMISSION	12
 #define SD_CMD_SEND_STATUS		13
 #define	SD_CMD_SET_BLOCKLEN		16
 #define SD_CMD_READ_SINGLE_BLOCK	17
 #define SD_CMD_READ_MULTIPLE_BLOCK	18
+#define SD_CMD_SEND_TUNING_BLOCK	19
 #define SD_CMD_SET_BLOCK_COUNT		23
 #define SD_CMD_APP_CMD			55
 
@@ -89,6 +91,10 @@
 #define SD_OCR_VDD_33_34		(0x01 << 21)
 #define SD_OCR_VDD_34_35		(0x01 << 22)
 #define SD_OCR_VDD_35_36		(0x01 << 23)
+#define SD_OCR_S18R				(0x01 << 24)
+#define SD_ROCR_S18A			SD_OCR_S18R
+#define SD_OCR_XPC				(1 << 28)
+#define SD_OCR_CCS				(1 << 30)
 
 #define OCR_VOLTAGE_27_36_MASK		0xff8000
 #define CHECK_PATTERN			0xaa
@@ -136,6 +142,11 @@ struct host_ops {
 	int (*set_clock)(struct sd_card *sdcard, unsigned int clock);
 	int (*set_bus_width)(struct sd_card *sdcard, unsigned int width);
 	int (*set_ddr)(struct sd_card *sdcard);
+	int (*set_1v8)(struct sd_card *sdcard);
+	void (*set_uhs_mode)(struct sd_card *sdcard, unsigned int mode);
+	void (*set_uhs_driver)(struct sd_card *sdcard, unsigned int driver);
+	int (*exec_tuning)(struct sd_card *sdcard, unsigned int cmd);
+	int (*card_busy)(struct sd_card *sdcard);
 };
 
 #define	BUS_WIDTH_1_BIT		0x01
@@ -147,11 +158,13 @@ struct sd_host {
 	struct host_ops *ops;
 	unsigned int caps_bus_width;
 	unsigned int caps_high_speed;
+	unsigned int caps_uhs;
 	unsigned int caps_adma2;
 	unsigned int caps_ddr;
 	unsigned int caps_clk_mult;
 	unsigned int caps_max_clock;
 	unsigned int caps_min_clock;
+	unsigned int caps_uhs_clock;
 	unsigned int caps_voltages;
 };
 
@@ -166,6 +179,55 @@ struct sdcard_register {
 	unsigned int	csr;	/* Card Status */
 };
 
+struct sdcard_sw_caps {
+	unsigned int	hs_max_dtr;
+	unsigned int	uhs_max_dtr;
+#define HIGH_SPEED_MAX_DTR	50000000
+#define UHS_SDR104_MAX_DTR	208000000
+#define UHS_SDR50_MAX_DTR	100000000
+#define UHS_DDR50_MAX_DTR	50000000
+#define UHS_SDR25_MAX_DTR	UHS_DDR50_MAX_DTR
+#define UHS_SDR12_MAX_DTR	25000000
+#define DEFAULT_SPEED_MAX_DTR	UHS_SDR12_MAX_DTR
+	unsigned int	sd3_bus_mode;
+#define UHS_SDR12_BUS_SPEED		0
+#define HIGH_SPEED_BUS_SPEED	1
+#define UHS_SDR25_BUS_SPEED		1
+#define UHS_SDR50_BUS_SPEED		2
+#define UHS_SDR104_BUS_SPEED	3
+#define UHS_DDR50_BUS_SPEED		4
+
+#define SD_MODE_HIGH_SPEED	(1 << HIGH_SPEED_BUS_SPEED)
+#define SD_MODE_UHS_SDR12	(1 << UHS_SDR12_BUS_SPEED)
+#define SD_MODE_UHS_SDR25	(1 << UHS_SDR25_BUS_SPEED)
+#define SD_MODE_UHS_SDR50	(1 << UHS_SDR50_BUS_SPEED)
+#define SD_MODE_UHS_SDR104	(1 << UHS_SDR104_BUS_SPEED)
+#define SD_MODE_UHS_DDR50	(1 << UHS_DDR50_BUS_SPEED)
+	unsigned int	sd3_cmd_sys;
+	unsigned int	sd3_drv_type;
+#define SD_SET_DRIVER_TYPE_B	0
+#define SD_SET_DRIVER_TYPE_A	1
+#define SD_SET_DRIVER_TYPE_C	2
+#define SD_SET_DRIVER_TYPE_D	3
+
+#define SD_DRIVER_TYPE_B (1 << SD_SET_DRIVER_TYPE_B)
+#define SD_DRIVER_TYPE_A (1 << SD_SET_DRIVER_TYPE_A)
+#define SD_DRIVER_TYPE_C (1 << SD_SET_DRIVER_TYPE_C)
+#define SD_DRIVER_TYPE_D (1 << SD_SET_DRIVER_TYPE_D)
+	unsigned int	sd3_curr_limit;
+#define SD_SET_CURRENT_LIMIT_200	0
+#define SD_SET_CURRENT_LIMIT_400	1
+#define SD_SET_CURRENT_LIMIT_600	2
+#define SD_SET_CURRENT_LIMIT_800	3
+#define SD_SET_CURRENT_LIMIT_500	4
+
+#define SD_MAX_CURRENT_200	(1 << SD_SET_CURRENT_LIMIT_200)
+#define SD_MAX_CURRENT_400	(1 << SD_SET_CURRENT_LIMIT_400)
+#define SD_MAX_CURRENT_600	(1 << SD_SET_CURRENT_LIMIT_600)
+#define SD_MAX_CURRENT_800	(1 << SD_SET_CURRENT_LIMIT_800)
+#define SD_MAX_CURRENT_500	(1 << SD_SET_CURRENT_LIMIT_500)
+};
+
 struct sd_card {
 	unsigned int	card_type;
 
@@ -177,10 +239,12 @@ struct sd_card {
 	unsigned int	ddr_support; /* is this card a DDR according to CARDTYPE */
 	unsigned int	read_bl_len;
 	unsigned int	configured_bus_w; /* bus width which we configured */
+	unsigned int	v1v8; /* is this card running in 1V8 mode */
 
 	struct sd_host	*host;
 
 	struct sdcard_register	*reg;
+	struct sdcard_sw_caps	*sw_caps;
 	struct sd_command	*command;
 	struct sd_data		*data;
 };
