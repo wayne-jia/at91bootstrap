@@ -127,6 +127,11 @@ config  SDHC_CLK_200MHZ
 
 endchoice
 
+config SDHC_SD_DDR200
+	bool "Support SD Card UHS-I DDR200"
+	depends on SDHC_UHS
+	default n
+
 config SDHC_8BIT_SUPPORT
 	bool "Use the full 8 bit bus width for this SDHC"
 	depends on SAMA5D2

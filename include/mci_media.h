@@ -183,6 +183,7 @@ struct sdcard_sw_caps {
 	unsigned int	hs_max_dtr;
 	unsigned int	uhs_max_dtr;
 #define HIGH_SPEED_MAX_DTR	50000000
+#define UHS_DDR200_MAX_DTR	208000000
 #define UHS_SDR104_MAX_DTR	208000000
 #define UHS_SDR50_MAX_DTR	100000000
 #define UHS_DDR50_MAX_DTR	50000000
@@ -204,6 +205,18 @@ struct sdcard_sw_caps {
 #define SD_MODE_UHS_SDR104	(1 << UHS_SDR104_BUS_SPEED)
 #define SD_MODE_UHS_DDR50	(1 << UHS_DDR50_BUS_SPEED)
 	unsigned int	sd3_cmd_sys;
+#define SD_SET_CMD_SYS_EC		1
+#define SD_SET_CMD_SYS_OTP		3
+#define SD_SET_CMD_SYS_ASSD		4
+#define SD_SET_CMD_SYS_ESD		12
+#define SD_SET_CMD_SYS_VENDOR	14
+#define UHS_DDR200_BUS_SPEED	SD_SET_CMD_SYS_VENDOR
+
+#define SD_CMD_SYS_EC		(1 << SD_SET_CMD_SYS_EC)
+#define SD_CMD_SYS_OTP		(1 << SD_SET_CMD_SYS_OTP)
+#define SD_CMD_SYS_ASSD		(1 << SD_SET_CMD_SYS_ASSD)
+#define SD_CMD_SYS_ESD		(1 << SD_SET_CMD_SYS_ESD)
+#define SD_CMD_SYS_VENDOR	(1 << SD_SET_CMD_SYS_VENDOR)
 	unsigned int	sd3_drv_type;
 #define SD_SET_DRIVER_TYPE_B	0
 #define SD_SET_DRIVER_TYPE_A	1

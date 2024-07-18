@@ -528,6 +528,7 @@ static int sd_switch_func_uhs(struct sd_card *sdcard)
 {
 	struct sd_host *host = sdcard->host;
 	unsigned short status[32];
+	unsigned int group_no = SD_SWITCH_GRP_ACCESS_MODE;
 	unsigned int drv_type;
 	unsigned int curr_limit;
 	unsigned int bus_mode;
@@ -551,8 +552,6 @@ static int sd_switch_func_uhs(struct sd_card *sdcard)
 					(void *)status);
 		if (ret)
 			return ret;
-
-		dump_sw_status(status);
 
 		result = swap_u16(status[7]) & 0xF;
 		if (result != drv_type)
@@ -585,8 +584,6 @@ static int sd_switch_func_uhs(struct sd_card *sdcard)
 		if (ret)
 			return ret;
 
-		dump_sw_status(status);
-
 		result = swap_u16(status[7])>>4 & 0xF;
 		if (result != curr_limit)
 			return -1;
@@ -596,6 +593,14 @@ static int sd_switch_func_uhs(struct sd_card *sdcard)
 	 * The SDHC host supports all UHS-I bus speed modes,
 	 * therefore select the highest speed mode supported by the SD Card.
 	 */
+#ifdef CONFIG_SDHC_SD_DDR200
+	if (sdcard->sw_caps->sd3_cmd_sys & SD_CMD_SYS_VENDOR) {
+		/* Enable DDR200 if Vendor specific flag is supported */
+		bus_mode  = UHS_DDR200_BUS_SPEED;
+		bus_clock = UHS_DDR200_MAX_DTR;
+		group_no  = SD_SWITCH_GRP_CMD_SYS;
+	} else
+#endif
 	if (sdcard->sw_caps->sd3_bus_mode & SD_MODE_UHS_SDR104) {
 		bus_mode  = UHS_SDR104_BUS_SPEED;
 		bus_clock = UHS_SDR104_MAX_DTR;
@@ -615,7 +620,7 @@ static int sd_switch_func_uhs(struct sd_card *sdcard)
 	if (bus_mode != UHS_SDR12_BUS_SPEED) {
 		ret = sd_cmd_switch_fun(sdcard,
 					SD_SWITCH_MODE_SET,
-					SD_SWITCH_GRP_ACCESS_MODE,
+					group_no,
 					bus_mode,
 					(void *)status);
 		if (ret)
@@ -623,11 +628,17 @@ static int sd_switch_func_uhs(struct sd_card *sdcard)
 
 		dump_sw_status(status);
 
-		result = swap_u16(status[8])>>8 & 0xF;
+		if (group_no == SD_SWITCH_GRP_ACCESS_MODE) {
+			result = swap_u16(status[8])>>8 & 0xF;
+		} else if (group_no == SD_SWITCH_GRP_CMD_SYS) {
+			result = swap_u16(status[8])>>12 & 0xF;
+		}
 		if (result != bus_mode)
 			return -1;
-		/* Set Host bus speed mode */
-		host->ops->set_uhs_mode(sdcard, bus_mode);
+
+		/* Set Host bus speed mode and bus clock */
+		host->ops->set_uhs_mode(sdcard,
+			bus_mode == UHS_DDR200_BUS_SPEED ? UHS_DDR50_BUS_SPEED : bus_mode);
 		if (bus_clock > host->caps_uhs_clock)
 			bus_clock = host->caps_uhs_clock;
 		host->ops->set_clock(sdcard, bus_clock);
