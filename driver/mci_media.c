@@ -647,8 +647,7 @@ static int sd_switch_func_uhs(struct sd_card *sdcard)
 		 * Sampling clock tuning is required for UHS104 host
 		 * and optional for UHS50 host.
 		 */
-		if ((bus_mode == UHS_SDR104_BUS_SPEED) ||
-			(bus_mode == UHS_SDR50_BUS_SPEED)) {
+		if (bus_mode == UHS_SDR104_BUS_SPEED) {
 			ret = host->ops->exec_tuning(sdcard, SD_CMD_SEND_TUNING_BLOCK);
 			if (ret) {
 				dbg_info("SD: UHS tuning error\n");
