@@ -12,7 +12,7 @@
 #include "ff.h"
 
 #include "debug.h"
-
+#include "arch/at91_xlcdc.h"
 
 static int sdcard_loadimage(char *filename, BYTE *dest)
 {
@@ -113,6 +113,20 @@ int load_sdcard(struct image_info *image)
 		dbg_info("*** FATFS: f_mount mount error **\n");
 		return -1;
 	}
+
+	
+
+#ifdef CONFIG_LOGO
+	dbg_info("SD/MMC: Xlcdc: Read file %s to %x\n",
+					image->logo_filename, image->logo_dest);
+
+	ret = sdcard_loadimage(image->logo_filename, image->logo_dest);
+	if (ret) {
+		(void)f_mount(0, NULL);
+		return ret;
+	}
+	xlcdc_display();
+#endif
 
 	dbg_info("SD/MMC: Image: Read file %s to %x\n",
 					image->filename, image->dest);

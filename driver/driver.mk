@@ -111,3 +111,7 @@ COBJS-$(CONFIG_SFRBU)		+= $(DRIVERS_SRC)/sfrbu.o
 
 COBJS-$(CONFIG_CACHES)		+= $(DRIVERS_SRC)/l1cache.o
 COBJS-$(CONFIG_MMU)		+= $(DRIVERS_SRC)/mmu.o
+
+COBJS-$(CONFIG_DSI)		+= $(DRIVERS_SRC)/at91_dsi.o
+COBJS-$(CONFIG_XLCDC)		+= $(DRIVERS_SRC)/at91_xlcdc.o
+COBJS-$(CONFIG_WS_DISP)		+= $(DRIVERS_SRC)/display/ws_touch_display.o

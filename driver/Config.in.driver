@@ -139,4 +139,20 @@ config CACHES
 	depends on MMU
 	default n
 
+config XLCDC
+	bool
+	default n
+
+config DSI
+	bool
+	default n
+
+config WS_DISP
+	bool
+	default n
+
+config CPU_HAS_XLCDC
+	bool
+	default n
+
 source "driver/Config.in.nvm"

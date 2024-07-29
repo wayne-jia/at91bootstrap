@@ -23,6 +23,9 @@ char of_filename[FILENAME_BUF_LEN];
 char cmdline_file[FILENAME_BUF_LEN];
 char cmdline_args[CMDLINE_BUF_LEN];
 #endif
+#ifdef CONFIG_LOGO
+char logo_filename[FILENAME_BUF_LEN];
+#endif
 #endif
 
 #ifdef CONFIG_LOAD_SW
@@ -96,6 +99,12 @@ void init_load_image(struct image_info *image)
 	strcpy(image->cmdline_file, CMDLINE_FILE);
 	image->cmdline_args = cmdline_args;
 #endif
+#endif
+
+#ifdef CONFIG_LOGO
+	image->logo_filename = logo_filename;
+	strcpy(image->logo_filename, LOGO_NAME);
+	image->logo_dest = (unsigned char *)(TOP_OF_MEMORY + 16);
 #endif
 
 #if defined(CONFIG_LOAD_LINUX) || defined(CONFIG_LOAD_ANDROID)

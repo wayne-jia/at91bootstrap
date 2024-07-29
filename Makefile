@@ -233,6 +233,13 @@ ifeq ($(CONFIG_SDHC_ASYNC_READ), y)
 SDHC_ASYNC_READ_QUEUE_SIZE := $(strip $(subst ",,$(CONFIG_SDHC_ASYNC_READ_QUEUE_SIZE)))
 endif
 
+ifeq ($(CONFIG_LOGO), y)
+LOGO_NAME := $(strip $(subst ",,$(CONFIG_LOGO_NAME)))
+LOGO_RGBDEF := $(strip $(subst ",,$(CONFIG_LOGO_RGBDEF)))
+LOGO_SCALE := $(strip $(subst ",,$(CONFIG_LOGO_SCALE)))
+LOGO_BL := $(strip $(subst ",,$(CONFIG_LOGO_BL)))
+endif
+
 COBJS-y:= main.o
 SOBJS-y:= crt0_gnu.o
 
