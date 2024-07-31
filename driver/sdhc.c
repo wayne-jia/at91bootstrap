@@ -725,7 +725,7 @@ static int sdhc_read_data(struct sd_data *data)
 			}
 
 			data->buff += data->blocksize;
-			if (++block >= data->blocks) {
+			if (++block > data->blocks) {
 				done = 1;
 				goto sdhc_read_data_reset;
 			}
@@ -772,7 +772,7 @@ static int sdhc_send_command(struct sd_command *sd_cmd, struct sd_data *data)
 	unsigned int normal_status, error_status, normal_status_mask;
 	unsigned int cmd_reg, mode;
 	unsigned int i;
-	int ret;
+	int ret = 0;
 	unsigned int timeout;
 	struct adma_desc dma_desc[16] = {0};
 
@@ -888,7 +888,7 @@ static int sdhc_send_command(struct sd_command *sd_cmd, struct sd_data *data)
 		/* if we have data but not using block transfer, we use PIO mode */
 		if (data && (!sdhc_host.caps_adma2 || (sd_cmd->cmd != SD_CMD_READ_SINGLE_BLOCK &&
 		    sd_cmd->cmd != SD_CMD_READ_MULTIPLE_BLOCK))) {
-			sdhc_read_data(data);
+			ret = sdhc_read_data(data);
 		} else if (data && sdhc_host.caps_adma2) {
 			/* otherwise, ADMA will carry the data for us */
 			/* Let's wait for ADMA to finish transferring */
@@ -903,8 +903,6 @@ static int sdhc_send_command(struct sd_command *sd_cmd, struct sd_data *data)
 			sdhc_writew(SDMMC_NISTR, SDMMC_NISTR_TRFC);
 			error_status = sdhc_readw(SDMMC_EISTR);
 		}
-
-		ret = 0;
 	} else {
 		error_status = sdhc_readw(SDMMC_EISTR);
 

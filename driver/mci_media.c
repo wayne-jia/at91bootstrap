@@ -487,7 +487,7 @@ static int sd_read_switch(struct sd_card *sdcard)
 					0xF,
 					(void *)status);
 		if (ret)
-			return ret;
+			continue;
 
 		/* Check Data Structure version
 		 * 0x00 - bits 511:376 are defined
