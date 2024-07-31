@@ -16,7 +16,6 @@
 #include "autoconf.h"
 #include "optee.h"
 #include "sfr_aicredir.h"
-#include "arch/at91_xlcdc.h"
 
 #ifdef CONFIG_CACHES
 #include "l1cache.h"
@@ -42,10 +41,6 @@ int main(void)
 	int ret = 0;
 
 	hw_init();
-
-#ifdef CONFIG_LOGO
-	xlcdc_init();
-#endif
 
 #ifdef CONFIG_OCMS_STATIC
 	ocms_init_keys();

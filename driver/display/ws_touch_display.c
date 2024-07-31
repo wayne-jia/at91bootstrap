@@ -42,7 +42,7 @@
 #include "timer.h"
 #include "twi.h"
 #include "string.h"
-
+#include "debug.h"
 
 /* Driver Data */
 DISP_DATA disp_data;
@@ -79,9 +79,11 @@ static int DISP_WriteRegister(u16 reg, u8 val)
     disp_data.txBuffer[0] = reg & 0xFF;
     disp_data.txBuffer[1] = val;
 
-    if (twi_write(0, disp_data.i2cAddress, disp_data.txBuffer[0], 1, &disp_data.txBuffer[1], 1))
-		return -1;
-    
+    if (twi_write(0, disp_data.i2cAddress, disp_data.txBuffer[0], 1, &disp_data.txBuffer[1], 1)) {
+        dbg_info("ERROR: i2c write ws panel\n\r");
+        return -1;
+    }
+
     return 0;
 }
 
@@ -158,7 +160,7 @@ void DISP_WS_Update(void)
                 DSI_VideoMode();
 
                 /* Delay Next State */
-                DISP_DelayNextState(1, DISP_STATE_SET_BRIGHTNESS);
+                DISP_DelayNextState(1, DISP_STATE_IDLE);
             }
             break;
         }

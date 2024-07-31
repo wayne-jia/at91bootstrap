@@ -50,7 +50,7 @@
 #include "debug.h"
 #include "string.h"
 #include "common.h"
-
+#include "div.h"
 
 
 /* PMC */
@@ -1074,6 +1074,53 @@ struct bmp_desc {
 } __attribute__ ((packed, aligned(1)));
 
 
+static inline u32 get_factor(u32 srcsize, u32 dstsize)
+{
+	return div(((1 << 20) * (srcsize + 1)), (dstsize + 1));
+}
+
+static void XLCDC_SetHEOScaleFactor(u32 h_factor, u32 v_factor)
+{
+    u32 vcdiv = 1;
+    u32 hcdiv = 1;
+
+    /* 2D Scaling Unit */
+    /* Configure Scaler */
+    XLCDC_REGS->LCDC_HEOCFG23 = LCDC_HEOCFG23_VXSYEN(1) |
+                                LCDC_HEOCFG23_VXSCEN(1) |
+                                LCDC_HEOCFG23_HXSYEN(1) |
+                                LCDC_HEOCFG23_HXSCEN(1);
+    /* Factors */
+    XLCDC_REGS->LCDC_HEOCFG24 = LCDC_HEOCFG24_VXSYFACT(v_factor);
+    XLCDC_REGS->LCDC_HEOCFG25 = LCDC_HEOCFG25_VXSCFACT(v_factor / vcdiv);
+    XLCDC_REGS->LCDC_HEOCFG26 = LCDC_HEOCFG26_HXSYFACT(h_factor);
+    XLCDC_REGS->LCDC_HEOCFG27 = LCDC_HEOCFG27_HXSCFACT(h_factor / hcdiv);
+    /* Phase/Offsets */
+    XLCDC_REGS->LCDC_HEOCFG28 = LCDC_HEOCFG28_VXSYOFF(0) |
+                                LCDC_HEOCFG28_VXSYOFF1(0) |
+                                LCDC_HEOCFG28_VXSCOFF(0) |
+                                LCDC_HEOCFG28_VXSCOFF1(0);
+    XLCDC_REGS->LCDC_HEOCFG29 = LCDC_HEOCFG29_HXSYOFF(0) |
+                                LCDC_HEOCFG29_HXSCOFF(0);
+    /* Vertical Filter Configuration */
+    XLCDC_REGS->LCDC_HEOCFG30 = LCDC_HEOCFG30_VXSYCFG(1) | LCDC_HEOCFG30_VXSYTAP2(1) |
+							  LCDC_HEOCFG30_VXSCCFG(1) | LCDC_HEOCFG30_VXSCTAP2(1);
+
+    /* Horizontal Filter Configuration */
+    XLCDC_REGS->LCDC_HEOCFG31 = LCDC_HEOCFG31_HXSYCFG(1) | LCDC_HEOCFG31_HXSYTAP2(1) |
+							  LCDC_HEOCFG31_HXSCCFG(1) | LCDC_HEOCFG31_HXSCTAP2(1);
+
+    /* Filter Tap Coefficients */
+    XLCDC_REGS->LCDC_HEOVTAP[0].LCDC_HEOVTAP10P = LCDC_HEOVTAP10P_TAP0(0) |
+                                                  LCDC_HEOVTAP10P_TAP1(0x400);
+    XLCDC_REGS->LCDC_HEOVTAP[0].LCDC_HEOVTAP32P = LCDC_HEOVTAP32P_TAP2(0) |
+                                                  LCDC_HEOVTAP32P_TAP3(0);
+    XLCDC_REGS->LCDC_HEOHTAP[0].LCDC_HEOHTAP10P = LCDC_HEOHTAP10P_TAP0(0) |
+                                                  LCDC_HEOHTAP10P_TAP1(0x0400);
+    XLCDC_REGS->LCDC_HEOHTAP[0].LCDC_HEOHTAP32P = LCDC_HEOHTAP32P_TAP2(0) |
+                                                  LCDC_HEOHTAP32P_TAP3(0);
+}
+
 void XLCDC_SetLayer_bmp(XLCDC_LAYER layer)
 {
     u8* ovr_buf;
@@ -1086,7 +1133,7 @@ void XLCDC_SetLayer_bmp(XLCDC_LAYER layer)
     memset(&drvLayer, 0, sizeof(drvLayer));
 
     if ((bmpinfo->bf_type[0] != 'B') || (bmpinfo->bf_type[1] != 'M')) {
-		dbg_info("ERROR: bmp file not found\n\r");
+		dbg_loud("ERROR: bmp file not found\n\r");
 		return;
 	}
 
@@ -1097,7 +1144,7 @@ void XLCDC_SetLayer_bmp(XLCDC_LAYER layer)
 		drvLayer.pixelformat = XLCDC_RGB_COLOR_MODE_CLUT;
 		pixel_bytes = 1;
 	} else {
-		dbg_info("ERROR: unsupported bmp format, bitcount=%d\n\r", bmpinfo->bi_bitcount);
+		dbg_loud("ERROR: unsupported bmp format, bitcount=%d\n\r", bmpinfo->bi_bitcount);
 		return;
 	}
 
@@ -1121,27 +1168,30 @@ void XLCDC_SetLayer_bmp(XLCDC_LAYER layer)
 	drvLayer.resy = (LOGO_SCALE == 0) ? drvLayer.sizey : (drvLayer.sizey * (8 + LOGO_SCALE) / 8);
 	drvLayer.startx = (drvLayer.resx >= XLCDC_HOR_RES) ? 0 : ((XLCDC_HOR_RES - drvLayer.resx) / 2);
 	drvLayer.starty = (drvLayer.resy >= XLCDC_VER_RES) ? 0 : ((XLCDC_VER_RES - drvLayer.resy) / 2);
-
+    
     XLCDC_SetLayerEnable(layer, false, true);
+    if ((drvLayer.sizex != drvLayer.resx) && (XLCDC_LAYER_HEO == layer))
+        XLCDC_SetHEOScaleFactor(get_factor(drvLayer.sizex, drvLayer.resx), get_factor(drvLayer.sizey, drvLayer.resy));
     XLCDC_SetLayerAddress(layer, (u32)ovr_buf, false);
     XLCDC_SetLayerRGBColorMode(layer, drvLayer.pixelformat, false);
     XLCDC_SetLayerOpts(layer, 255, true, false);
     XLCDC_SetLayerWindowXYPos(layer, drvLayer.startx, drvLayer.starty, false);
-    XLCDC_SetLayerWindowXYSize(layer, drvLayer.sizex, drvLayer.sizey, false);
+    XLCDC_REGS->LCDC_HEOCFG3 = LCDC_HEOCFG3_XSIZE(drvLayer.resx - 1) | LCDC_HEOCFG3_YSIZE(drvLayer.resy - 1);
+    XLCDC_REGS->LCDC_HEOCFG4 = LCDC_HEOCFG4_XMEMSIZE(drvLayer.sizex - 1) | LCDC_HEOCFG4_YMEMSIZE(drvLayer.sizey - 1);
     XLCDC_SetLayerXStride(layer, drvLayer.xstride, false);
     XLCDC_SetLayerEnable(layer, true, true);
 }
 
 void xlcdc_init(void)
 {
+    DISP_WS_Initialize();
+    DISP_WS_Brightness();
     DSI_Initialize();
     XLCDC_Initialize();
-    DISP_WS_Initialize();
 }
 
 void xlcdc_display(void)
 {
     DISP_WS_PowerOn();
-	DISP_WS_Brightness();
     XLCDC_SetLayer_bmp(XLCDC_LAYER_HEO);
 }

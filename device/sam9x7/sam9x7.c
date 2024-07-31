@@ -25,6 +25,10 @@
 #include "board.h"
 #include "led.h"
 
+#ifdef CONFIG_LOGO
+#include "arch/at91_xlcdc.h"
+#endif
+
 __attribute__((weak)) void wilc_pwrseq(void);
 __attribute__((weak)) void at91_can_stdby_dis(void);
 
@@ -314,6 +318,10 @@ void hw_init(void)
 
 #ifdef CONFIG_TWI
 	twi_init();
+#endif
+
+#ifdef CONFIG_LOGO
+	xlcdc_init();
 #endif
 
 #if defined(CONFIG_DDR3)

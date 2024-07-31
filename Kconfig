@@ -1090,6 +1090,7 @@ config LOGO
 	select DSI
 	select WS_DISP
 	select TWI
+	select FLEXCOM6
 	default n
 	help
 	  Display boot logo in AT91bootstrap
@@ -1113,7 +1114,7 @@ config LOGO_RGBDEF
 config LOGO_SCALE
 	string "Scaling rate"
 	depends on LOGO
-	default "0"
+	default "8"
 	help
 	  Scale the logo if needed
 	  Only up scaling is supported
