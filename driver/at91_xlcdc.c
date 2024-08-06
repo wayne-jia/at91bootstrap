@@ -42,7 +42,6 @@
 *******************************************************************************/
 // DOM-IGNORE-END
 
-
 #include "arch/sam9x75d2g.h"
 #include "arch/at91_xlcdc.h"
 #include "arch/at91_dsi.h"
@@ -51,7 +50,6 @@
 #include "string.h"
 #include "common.h"
 #include "div.h"
-
 
 /* PMC */
 /* PMC_PCR_GCLKDIV (Bug Fix) */
@@ -112,8 +110,6 @@
 #define LCDC_HEOCFG12_SFACTC_Pos              _UINT32_(6)
 #define LCDC_HEOCFG12_SFACTC_Msk              (_UINT32_(0x7) << LCDC_HEOCFG12_SFACTC_Pos)
 #define LCDC_HEOCFG12_SFACTC(value)           (LCDC_HEOCFG12_SFACTC_Msk & (_UINT32_(value) << LCDC_HEOCFG12_SFACTC_Pos))
-
-
 
 void XLCDC_EnableClocks(void)
 {
@@ -773,13 +769,19 @@ bool XLCDC_SetLayerWindowXYPos(XLCDC_LAYER layer, u32 xpos, u32 ypos, bool updat
         return 0;
 }
 
-bool XLCDC_SetLayerWindowXYSize(XLCDC_LAYER layer, u32 xsize, u32 ysize, bool update)
+bool XLCDC_SetLayerWindowXYSize(XLCDC_LAYER layer, u32 xsize, u32 ysize, u32 xmemsize, u32 ymemsize, bool update)
 {
     if (xsize == 0)
         xsize = 1;
 
     if (ysize == 0)
         ysize = 1;
+
+    if (xmemsize == 0)
+        xmemsize = 1;
+
+    if (ymemsize == 0)
+        ymemsize = 1;
 
     switch(layer)
     {
@@ -804,8 +806,8 @@ bool XLCDC_SetLayerWindowXYSize(XLCDC_LAYER layer, u32 xsize, u32 ysize, bool up
             XLCDC_REGS->LCDC_HEOCFG3 = LCDC_HEOCFG3_XSIZE(xsize - 1) |
                                        LCDC_HEOCFG3_YSIZE(ysize - 1);
 
-            XLCDC_REGS->LCDC_HEOCFG4 = LCDC_HEOCFG4_XMEMSIZE(xsize - 1) |
-                                       LCDC_HEOCFG4_YMEMSIZE(ysize - 1);
+            XLCDC_REGS->LCDC_HEOCFG4 = LCDC_HEOCFG4_XMEMSIZE(xmemsize - 1) |
+                                       LCDC_HEOCFG4_YMEMSIZE(ymemsize - 1);
 
             break;
         }
@@ -1047,8 +1049,7 @@ void XLCDC_Initialize(void)
     XLCDC_Start();
 }
 
-
-///: The BMP file parsing
+// The BMP file parsing
 #define LCDC_BMP_ADDR (TOP_OF_MEMORY + 16)
 #define BMP_LINE_ALIGN 4
 
@@ -1058,7 +1059,6 @@ struct bmp_desc {
 	u16 bf_reserved1;
 	u16 bf_reserver2;
 	u32 bf_offbits;
-
 	u32 bi_size;
 	u32 bi_width;
 	u32 bi_height;
@@ -1072,7 +1072,6 @@ struct bmp_desc {
 	u32 bi_clrimportant;
 	u32 clut[];
 } __attribute__ ((packed, aligned(1)));
-
 
 static inline u32 get_factor(u32 srcsize, u32 dstsize)
 {
@@ -1132,18 +1131,24 @@ void XLCDC_SetLayer_bmp(XLCDC_LAYER layer)
     /* Clear the Layer Attributes */
     memset(&drvLayer, 0, sizeof(drvLayer));
 
-    if ((bmpinfo->bf_type[0] != 'B') || (bmpinfo->bf_type[1] != 'M')) {
+    if ((bmpinfo->bf_type[0] != 'B') || (bmpinfo->bf_type[1] != 'M'))
+    {
 		dbg_loud("ERROR: bmp file not found\n\r");
 		return;
 	}
 
-    if (bmpinfo->bi_bitcount == 24) {
+    if (bmpinfo->bi_bitcount == 24)
+    {
 		drvLayer.pixelformat = XLCDC_RGB_COLOR_MODE_RGB_888_PACKED;
 		pixel_bytes = 3;
-	} else if (bmpinfo->bi_bitcount == 8) {
+	}
+    else if (bmpinfo->bi_bitcount == 8)
+    {
 		drvLayer.pixelformat = XLCDC_RGB_COLOR_MODE_CLUT;
 		pixel_bytes = 1;
-	} else {
+	}
+    else
+    {
 		dbg_loud("ERROR: unsupported bmp format, bitcount=%d\n\r", bmpinfo->bi_bitcount);
 		return;
 	}
@@ -1155,11 +1160,14 @@ void XLCDC_SetLayer_bmp(XLCDC_LAYER layer)
     ovr_buf = (u8*)(LCDC_BMP_ADDR + bmpinfo->bf_offbits);
 	drvLayer.sizex  = bmpinfo->bi_width;
 
-    if (((int)bmpinfo->bi_height) > 0) {
+    if (((int)bmpinfo->bi_height) > 0)
+    {
 		drvLayer.sizey  = bmpinfo->bi_height;
 		drvLayer.xstride = -(drvLayer.sizex * pixel_bytes * 2 + line_padding);
 		ovr_buf += (drvLayer.sizex * pixel_bytes + line_padding) * (drvLayer.sizey - 1);
-	} else {
+	}
+    else
+    {
 		drvLayer.sizey  = -bmpinfo->bi_height;
 		drvLayer.xstride = line_padding;
 	}
@@ -1176,8 +1184,7 @@ void XLCDC_SetLayer_bmp(XLCDC_LAYER layer)
     XLCDC_SetLayerRGBColorMode(layer, drvLayer.pixelformat, false);
     XLCDC_SetLayerOpts(layer, 255, true, false);
     XLCDC_SetLayerWindowXYPos(layer, drvLayer.startx, drvLayer.starty, false);
-    XLCDC_REGS->LCDC_HEOCFG3 = LCDC_HEOCFG3_XSIZE(drvLayer.resx - 1) | LCDC_HEOCFG3_YSIZE(drvLayer.resy - 1);
-    XLCDC_REGS->LCDC_HEOCFG4 = LCDC_HEOCFG4_XMEMSIZE(drvLayer.sizex - 1) | LCDC_HEOCFG4_YMEMSIZE(drvLayer.sizey - 1);
+    XLCDC_SetLayerWindowXYSize(layer, drvLayer.resx, drvLayer.resy, drvLayer.sizex, drvLayer.sizey, false);
     XLCDC_SetLayerXStride(layer, drvLayer.xstride, false);
     XLCDC_SetLayerEnable(layer, true, true);
 }

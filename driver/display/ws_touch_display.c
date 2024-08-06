@@ -37,7 +37,6 @@
 *******************************************************************************/
 // DOM-IGNORE-END
 
-
 #include "ws_touch_display.h"
 #include "timer.h"
 #include "twi.h"
@@ -46,7 +45,6 @@
 
 /* Driver Data */
 DISP_DATA disp_data;
-
 
 /* Display Initialization Sequence */
 #define DISP_INIT_BYTES 4

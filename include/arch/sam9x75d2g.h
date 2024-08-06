@@ -24,10 +24,8 @@
 #ifndef _SAM9X75D2G_H_
 #define _SAM9X75D2G_H_
 
-
 #include "dsi.h"
 #include "lcdc.h"
-
 
 /* Header version uses Semantic Versioning 2.0.0 (https://semver.org/) */
 #define HEADER_FORMAT_VERSION "2.1.0"
@@ -48,8 +46,6 @@
  extern "C" {
 #endif
 
-
-
 #if !defined(SKIP_INTEGER_LITERALS)
 #  if defined(_UINT8_) || defined(_UINT16_) || defined(_UINT32_)
 #    error "Integer constant value macros already defined elsewhere"
@@ -68,7 +64,6 @@
 #  define _UINT32_(x) x   /* Assembler: 32-bits unsigned integer constant value */
 #endif /* !(defined(__ASSEMBLER__) || defined(__IAR_SYSTEMS_ASM__)) */
 #endif /* SKIP_INTEGER_LITERALS */
-
 
 /* ************************************************************************** */
 /* DEFINITIONS FOR PMC                                                        */
@@ -208,9 +203,6 @@ typedef struct
   __IO  u32                       SFR_REMAP_MP_DDR;   /**< Offset: 0x260 (R/W  32) Remap Multiport DDR Register */
 } sfr_registers_t;
 
-
-
-
 /* ************************************************************************** */
 /* INTERRUPTS DEFINITIONS FOR SAM9X75D2G                                    */
 /* ************************************************************************** */
@@ -309,7 +301,6 @@ typedef enum IRQn
    #define   __IO volatile       /* Defines 'read/write' permissions */
 #endif /* !(defined(__ASSEMBLER__) || defined(__IAR_SYSTEMS_ASM__)) */
 
-
 /* ************************************************************************** */
 /*  PERIPHERAL ID DEFINITIONS FOR SAM9X75D2G                                  */
 /* ************************************************************************** */
@@ -387,7 +378,6 @@ typedef enum IRQn
 #define XLCDC_REGS                       ((lcdc_registers_t*)0xf8038000)               /* XLCDC Registers Address      */
 #define PMC_REGS                         ((pmc_registers_t*)0xfffffc00)                /* PMC Registers Address        */
 #define SFR_REGS                         ((sfr_registers_t*)0xf8050000)                /* SFR Registers Address        */
-
 
 /* ************************************************************************** */
 /*   BASE ADDRESS DEFINITIONS FOR SAM9X75D2G                                  */
@@ -510,12 +500,6 @@ typedef enum IRQn
 #define CHIP_JTAGID                    _UINT32_(0X00000000)
 #define CHIP_CIDR                      _UINT32_(0X89750030)
 #define CHIP_EXID                      _UINT32_(0X00000020)
-
-/* ************************************************************************** */
-/*   ELECTRICAL DEFINITIONS FOR SAM9X75D2G                                    */
-/* ************************************************************************** */
-
-
 
 #ifdef __cplusplus
 }

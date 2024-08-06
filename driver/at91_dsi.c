@@ -1,12 +1,30 @@
-// Copyright (C) 2020 Microchip Technology Inc. and its subsidiaries
-//
-// SPDX-License-Identifier: MIT
-
-
+// DOM-IGNORE-BEGIN
+/*******************************************************************************
+* Copyright (C) 2023 Microchip Technology Inc. and its subsidiaries.
+*
+* Subject to your compliance with these terms, you may use Microchip software
+* and any derivatives exclusively with Microchip products. It is your
+* responsibility to comply with third party license terms applicable to your
+* use of third party software (including open source software) that may
+* accompany Microchip software.
+*
+* THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS". NO WARRANTIES, WHETHER
+* EXPRESS, IMPLIED OR STATUTORY, APPLY TO THIS SOFTWARE, INCLUDING ANY IMPLIED
+* WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY, AND FITNESS FOR A
+* PARTICULAR PURPOSE.
+*
+* IN NO EVENT WILL MICROCHIP BE LIABLE FOR ANY INDIRECT, SPECIAL, PUNITIVE,
+* INCIDENTAL OR CONSEQUENTIAL LOSS, DAMAGE, COST OR EXPENSE OF ANY KIND
+* WHATSOEVER RELATED TO THE SOFTWARE, HOWEVER CAUSED, EVEN IF MICROCHIP HAS
+* BEEN ADVISED OF THE POSSIBILITY OR THE DAMAGES ARE FORESEEABLE. TO THE
+* FULLEST EXTENT ALLOWED BY LAW, MICROCHIP'S TOTAL LIABILITY ON ALL CLAIMS IN
+* ANY WAY RELATED TO THIS SOFTWARE WILL NOT EXCEED THE AMOUNT OF FEES, IF ANY,
+* THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
+*******************************************************************************/
+// DOM-IGNORE-END
 
 #include "arch/sam9x75d2g.h"
 #include "arch/at91_dsi.h"
-
 
 /* Utility Macros */
 /* PMC */
@@ -76,7 +94,8 @@
 
 /* Local Utility Functions */
 /* D-PHY Control Operation */
-static void DSI_DPHY_GeneralControlOperation(u8 test_code, u8 test_data) {
+static void DSI_DPHY_GeneralControlOperation(u8 test_code, u8 test_data) 
+{
     DSI_REGS->DSI_DPHY_TST_CTRL0 = DSI_DPHY_TST_CTRL0_PHY_TESTCLK(1);
     DSI_REGS->DSI_DPHY_TST_CTRL1 = DSI_DPHY_TST_CTRL1_PHY_TESTEN(1) |
                                    DSI_DPHY_TST_CTRL1_PHY_TESTDIN(test_code);

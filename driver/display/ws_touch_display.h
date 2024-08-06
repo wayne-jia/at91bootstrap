@@ -37,14 +37,10 @@
 * THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
 *******************************************************************************/
 // DOM-IGNORE-END
-
 #ifndef _WS_TOUCH_DISPLAY_H
 #define _WS_TOUCH_DISPLAY_H
 
-
-
 #include "arch/at91_dsi.h"
-
 
 /* Buffer Size */
 #define DISP_RX_BUF_SIZE    186
@@ -73,14 +69,6 @@ typedef enum
 
     DISP_STATE_IDLE
 } DISP_STATES;
-
-/*******************************************************************************
-  Client ID
-
-  Summary:
-    Selects Client ID.
-*/
-
 
 /*******************************************************************************
   Display Driver Data
@@ -142,7 +130,22 @@ void DISP_WS_Update(void);
 */
 bool DISP_WS_SetBrightness(u8 brightness);
 
+/*******************************************************************************
+  Function:
+    void DISP_WS_PowerOn(void)
+
+  Summary:
+    Power on the display, init the display sequence
+*/
 void DISP_WS_PowerOn(void);
+
+/*******************************************************************************
+  Function:
+    void DISP_WS_Brightness(void)
+
+  Summary:
+    Set the backlight to MAX in initialization
+*/
 void DISP_WS_Brightness(void);
 
 #ifdef __cplusplus

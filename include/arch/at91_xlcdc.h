@@ -41,10 +41,8 @@
 * THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
 *******************************************************************************/
 // DOM-IGNORE-END
-
 #ifndef _AT91_XLCDC_H
 #define _AT91_XLCDC_H
-
 
 #include "types.h"
 
@@ -149,7 +147,6 @@ typedef enum XLCDC_YCBCR_COLOR_MODE
     XLCDC_YCBCR_COLOR_MODE_YCBCR_420_SEMIPLANAR,
     XLCDC_YCBCR_COLOR_MODE_YCBCR_420_PLANAR,
 } XLCDC_YCBCR_COLOR_MODE;
-
 
 ///============DRV_XLCDC DEFINE
 typedef enum gfxDriverIOCTLRequest
@@ -633,6 +630,8 @@ bool XLCDC_SetLayerWindowXYPos(XLCDC_LAYER layer, u32 xpos, u32 ypos, bool updat
     layer - One the four XLCDC layers of type XLCDC_LAYER.
     xsize - Integer specifying Window X Size.
     ysize - Integer specifying Window Y Size.
+    xmemsize - Integer specifying Frame buffer X Size.
+    ymemsize - Integer specifying Frame buffer Y Size.
     update - If True, updates attributes immediately.
              If False, update manually using XLCDC_UpdateLayerAttributes(layer).
 
@@ -642,7 +641,7 @@ bool XLCDC_SetLayerWindowXYPos(XLCDC_LAYER layer, u32 xpos, u32 ypos, bool updat
    Remarks:
     None.
 */
-bool XLCDC_SetLayerWindowXYSize(XLCDC_LAYER layer, u32 xsize, u32 ysize, bool update);
+bool XLCDC_SetLayerWindowXYSize(XLCDC_LAYER layer, u32 xsize, u32 ysize, u32 xmemsize, u32 ymemsize, bool update);
 
 /*******************************************************************************
   Function:
@@ -848,9 +847,52 @@ void XLCDC_Start(void);
 */
 void XLCDC_Initialize(void);
 
+/*******************************************************************************
+  Function:
+    void xlcdc_init(void)
 
+   Summary:
+    Initializes the XLCDC and DSI and Waveshare display panel.
 
+   Description:
+    None.
+
+   Precondition:
+    None.
+
+   Parameters:
+    None.
+
+   Returns:
+    None.
+
+   Remarks:
+    None.
+*/
 void xlcdc_init(void);
+
+/*******************************************************************************
+  Function:
+    void xlcdc_display(void)
+
+   Summary:
+    Display logo on LCD.
+
+   Description:
+    None.
+
+   Precondition:
+    None.
+
+   Parameters:
+    None.
+
+   Returns:
+    None.
+
+   Remarks:
+    None.
+*/
 void xlcdc_display(void);
 
 // DOM-IGNORE-BEGIN

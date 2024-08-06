@@ -41,10 +41,8 @@
 * THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
 *******************************************************************************/
 // DOM-IGNORE-END
-
 #ifndef _PLIB_DSI_H
 #define _PLIB_DSI_H
-
 
 #include "types.h"
 
