@@ -26,6 +26,7 @@
 #ifdef CONFIG_NAND_DMA_SUPPORT
 #include "xdmac.h"
 #endif
+#include "lcdc.h"
 
 #ifdef CONFIG_NANDFLASH_SMALL_BLOCKS
 static struct nand_chip nand_ids[] = {
@@ -1379,6 +1380,22 @@ int load_nandflash(struct image_info *image)
 
 #ifdef CONFIG_ENABLE_SW_ECC
 	dbg_info("NAND: Using Software ECC\n");
+#endif
+
+#ifdef CONFIG_LOGO
+	ret = nand_loadimage(&nand, image->logo_offset, nand.pagesize,
+				image->logo_dest);
+	if (!ret) {
+		int length = bmp_size(image->logo_dest);
+		if (length > nand.pagesize)
+			ret = nand_loadimage(&nand,
+					image->logo_offset + nand.pagesize,
+					length - nand.pagesize,
+					image->logo_dest + nand.pagesize);
+	}
+
+	if (!ret)
+		lcdc_display();
 #endif
 
 #if defined(CONFIG_LOAD_LINUX) || defined(CONFIG_LOAD_ANDROID)

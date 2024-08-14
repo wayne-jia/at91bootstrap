@@ -10,6 +10,7 @@
 #include "timer.h"
 #include "div.h"
 #include "fdt.h"
+#include "lcdc.h"
 
 int spi_flash_read_reg(struct spi_flash *flash, u8 inst, u8 *buf, size_t len)
 {
@@ -299,6 +300,24 @@ int spi_flash_loadimage(struct spi_flash *flash, struct image_info *image)
 		goto err_exit;
 	}
 #endif /* CONFIG_DATAFLASH_RECOVERY */
+
+#ifdef CONFIG_LOGO
+	ret = spi_flash_read(flash,
+			     image->logo_offset,
+			     flash->page_size,
+			     image->logo_dest);
+	if (!ret) {
+		int length = bmp_size(image->logo_dest);
+		if (length > flash->page_size)
+			ret = spi_flash_read(flash,
+					image->logo_offset + flash->page_size,
+					length - flash->page_size,
+					image->logo_dest + flash->page_size);
+	}
+
+	if (!ret)
+		lcdc_display();
+#endif
 
 #ifdef CONFIG_OF_LIBFDT
 	length = update_image_length(flash,

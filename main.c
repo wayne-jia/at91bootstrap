@@ -16,6 +16,7 @@
 #include "autoconf.h"
 #include "optee.h"
 #include "sfr_aicredir.h"
+#include "lcdc.h"
 
 #ifdef CONFIG_CACHES
 #include "l1cache.h"
@@ -41,6 +42,10 @@ int main(void)
 	int ret = 0;
 
 	hw_init();
+
+#ifdef CONFIG_LOGO
+	lcdc_init();
+#endif
 
 #ifdef CONFIG_OCMS_STATIC
 	ocms_init_keys();
