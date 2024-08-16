@@ -1105,14 +1105,46 @@ config XDMAC
 	default y
 	help
 	  Xdmac support
+
+config LCDC
+	bool "LCDC support"
+	depends on CPU_HAS_LCDC
+	default n
+	help
+	  LCDC support
+
+choice
+	prompt "LCDC IOSET"
+	depends on LCDC
+	default LCDC_IOSET_1 if SAMA5D2
+	default LCDC_IOSET_1_18_BIT if SAM9X6
+	help
+	  Select the LCDC ioset
+
+config LCDC_IOSET_1
+	bool "IOSET 1 for SAMA5D27-SOM1-EK1"
+	depends on SAMA5D2
+
+config LCDC_IOSET_2
+	bool "IOSET 2 for SAMA5D2-XULT"
+	depends on SAMA5D2
+
+config LCDC_IOSET_1_18_BIT
+	bool "IOSET 1 18-bit for SAM9X60-Curiosity"
+	depends on SAM9X60
+
+config LCDC_IOSET_1_24_BIT
+	bool "IOSET 1 24-bit for SAM9X60-EK"
+	depends on SAM9X60
+
+endchoice
 endmenu
 
 menu "Boot logo"
-	depends on CPU_HAS_LCDC
+	depends on LCDC
 
 config LOGO
 	bool "Display logo"
-	select LCDC
 	default n
 	help
 	  Display boot logo in AT91bootstrap
@@ -1173,21 +1205,4 @@ config LOGO_BL_DELAY
 	help
 	  Delay before turn on the backlight
 	  The unit is milliseconds
-
-choice
-	prompt "LCDC IOSET"
-	depends on LOGO && SAMA5D2
-        default LCDC_IOSET_1
-        help
-          Select the LCDC ioset
-
-config LCDC_IOSET_1
-        bool "IOSET 1 for SAMA5D27-SOM1-EK1"
-        depends on SAMA5D2
-
-config LCDC_IOSET_2
-        bool "IOSET 2 for SAMA5D2-XULT"
-        depends on SAMA5D2
-
-endchoice
 endmenu

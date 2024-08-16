@@ -126,10 +126,6 @@ config CPU_HAS_XDMAC
 	bool
 	default n
 
-config LCDC
-	bool
-	default n
-
 config CPU_HAS_LCDC
 	bool
 	default n
