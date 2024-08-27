@@ -1138,10 +1138,35 @@ config LCDC_IOSET_1_24_BIT
 	depends on SAM9X60
 
 endchoice
+
+config XLCDC
+	bool "XLCDC support"
+	depends on CPU_HAS_XLCDC
+	default n
+	help
+	  XLCDC support
+
+choice
+	prompt "XLCDC display interface"
+	depends on XLCDC
+	default LVDS if CPU_HAS_LVDSC
+	help
+	  Select the XLCDC display interface
+
+config LVDSC
+	bool "LVDS"
+	depends on CPU_HAS_LVDSC
+
+config MIPI_DSI
+	bool "MIPI-DSI"
+	depends on CPU_HAS_MIPI_DSI
+
+endchoice
+
 endmenu
 
 menu "Boot logo"
-	depends on LCDC
+	depends on LCDC || XLCDC
 
 config LOGO
 	bool "Display logo"
@@ -1182,13 +1207,13 @@ config LOGO_RGBDEF
 	  Format is 0xRRGGBB
 
 config LOGO_SCALE
-	string "Scaling rate"
+	string "Scaling step"
 	depends on LOGO
 	default "0"
 	help
 	  Scale the logo if needed
 	  Only up scaling is supported
-	  The step is 0.125 (1/8), 0 means no scaling
+	  One step is 0.125 (1/8), 0 means no scaling
 
 config LOGO_BL
 	string "Backlight brightness"

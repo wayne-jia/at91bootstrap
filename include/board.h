@@ -59,6 +59,7 @@ extern void at91_mci2_hw_init(void);
 extern void at91_sdhc_hw_init(void);
 
 extern void at91_lcdc_hw_init(void);
+extern void at91_xlcdc_hw_init(void);
 
 extern void at91_board_set_dtb_name(char *of_name);
 
