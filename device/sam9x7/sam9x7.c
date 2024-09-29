@@ -472,3 +472,36 @@ void nandflash_set_smc_timing(unsigned int timing_mode)
 	nandflash_smc_conf(timing_mode, 2);
 }
 #endif /* #ifdef CONFIG_NANDFLASH */
+
+#ifdef CONFIG_XLCDC
+
+#define ATMEL_XLCDC_GCKDIV_VALUE     3
+
+void at91_xlcdc_hw_init(void)
+{
+	const struct pio_desc xlcdc_pins[] = {
+#ifdef BOARD_LCD_PIN_RST
+		{"LCDRST" , BOARD_LCD_PIN_RST , 1, PIO_DEFAULT, PIO_OUTPUT},
+#endif
+#ifdef BOARD_LCD_PIN_EN
+		{"LCDEN"  , BOARD_LCD_PIN_EN  , 1, PIO_DEFAULT, PIO_OUTPUT},
+#endif
+#ifdef BOARD_LCD_PIN_DISP
+		{"LCDDISP", BOARD_LCD_PIN_DISP, 1, PIO_DEFAULT, PIO_OUTPUT},
+#endif
+#ifdef BOARD_LCD_PIN_BL
+		{"LCDBL"  , BOARD_LCD_PIN_BL  , 0, PIO_DEFAULT, PIO_OUTPUT},
+#endif
+		{(char *)0, 0, 0, PIO_DEFAULT, PIO_PERIPH_A},
+	};
+
+	pio_configure(xlcdc_pins);
+	pmc_enable_periph_clock(CONFIG_SYS_ID_XLCDC, PMC_PERIPH_CLK_DIVIDER_NA);
+	pmc_enable_generic_clock(CONFIG_SYS_ID_XLCDC,
+				GCK_CSS_MCK_CLK,
+				ATMEL_XLCDC_GCKDIV_VALUE);
+#ifdef CONFIG_LVDSC
+	pmc_enable_periph_clock(CONFIG_SYS_ID_LVDSC, PMC_PERIPH_CLK_DIVIDER_NA);
+#endif
+}
+#endif /* #ifdef CONFIG_XLCDC */

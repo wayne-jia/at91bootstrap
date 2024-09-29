@@ -1105,5 +1105,129 @@ config XDMAC
 	default y
 	help
 	  Xdmac support
+
+config LCDC
+	bool "LCDC support"
+	depends on CPU_HAS_LCDC
+	default n
+	help
+	  LCDC support
+
+choice
+	prompt "LCDC IOSET"
+	depends on LCDC
+	default LCDC_IOSET_1 if SAMA5D2
+	default LCDC_IOSET_1_18_BIT if SAM9X6
+	help
+	  Select the LCDC ioset
+
+config LCDC_IOSET_1
+	bool "IOSET 1 for SAMA5D27-SOM1-EK1"
+	depends on SAMA5D2
+
+config LCDC_IOSET_2
+	bool "IOSET 2 for SAMA5D2-XULT"
+	depends on SAMA5D2
+
+config LCDC_IOSET_1_18_BIT
+	bool "IOSET 1 18-bit for SAM9X60-Curiosity"
+	depends on SAM9X60
+
+config LCDC_IOSET_1_24_BIT
+	bool "IOSET 1 24-bit for SAM9X60-EK"
+	depends on SAM9X60
+
+endchoice
+
+config XLCDC
+	bool "XLCDC support"
+	depends on CPU_HAS_XLCDC
+	default n
+	help
+	  XLCDC support
+
+choice
+	prompt "XLCDC display interface"
+	depends on XLCDC
+	default LVDS if CPU_HAS_LVDSC
+	help
+	  Select the XLCDC display interface
+
+config LVDSC
+	bool "LVDS"
+	depends on CPU_HAS_LVDSC
+
+config MIPI_DSI
+	bool "MIPI-DSI"
+	depends on CPU_HAS_MIPI_DSI
+
+endchoice
+
 endmenu
 
+menu "Boot logo"
+	depends on LCDC || XLCDC
+
+config LOGO
+	bool "Display logo"
+	default n
+	help
+	  Display boot logo in AT91bootstrap
+	  BMP format image is supported
+	  The file size limit is 32K-16
+
+config LOGO_NAME
+	string "Logo file name"
+	depends on LOGO && FATFS
+	default "logo.bmp"
+	help
+	  The name of the image file
+
+config LOGO_ADDRESS
+	string "Logo file address"
+	depends on LOGO && (DATAFLASH || NANDFLASH)
+	default "0x40000"
+	help
+	  The address of the image file in the Flash
+
+config LOGO_FB_ADDRESS
+	string "Logo framebuffer address"
+	depends on LOGO
+	default TOP_OF_MEMORY
+	help
+	  The address of the framebuffer in SRAM or DDR
+	  SRAM(TOP_OF_MEMORY) is used by default
+
+config LOGO_RGBDEF
+	string "Background color"
+	depends on LOGO
+	default "0x000000"
+	help
+	  Background color of the logo
+	  Format is 0xRRGGBB
+
+config LOGO_SCALE
+	string "Scaling step"
+	depends on LOGO
+	default "0"
+	help
+	  Scale the logo if needed
+	  Only up scaling is supported
+	  One step is 0.125 (1/8), 0 means no scaling
+
+config LOGO_BL
+	string "Backlight brightness"
+	depends on LOGO
+	default "255"
+	help
+	  The brightness of backlight
+	  The value is from 0 ~ 255 (off ~ brightest)
+
+config LOGO_BL_DELAY
+	string "Backlight on delay"
+	depends on LOGO
+	default "0"
+	help
+	  Delay before turn on the backlight
+	  The unit is milliseconds
+endmenu

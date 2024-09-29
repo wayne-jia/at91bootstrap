@@ -6,6 +6,7 @@
 #include "common.h"
 #include "hardware.h"
 #include "board.h"
+#include "lcdc.h"
 
 #include "string.h"
 
@@ -123,6 +124,15 @@ int load_sdcard(struct image_info *image)
 		dbg_info("*** FATFS: f_mount mount error **\n");
 		return -1;
 	}
+
+#ifdef CONFIG_LOGO
+	dbg_info("SD/MMC: Lcdc: Read file %s to %x\n",
+					image->logo_filename, image->logo_dest);
+
+	ret = sdcard_loadimage(image->logo_filename, image->logo_dest);
+	if (!ret)
+		lcdc_display();
+#endif
 
 	dbg_info("SD/MMC: Image: Read file %s to %x\n",
 					image->filename, image->dest);

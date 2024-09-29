@@ -225,6 +225,16 @@ ifeq ($(IMAGE),)
 IMAGE=$(BOOT_NAME).bin
 endif
 
+ifeq ($(CONFIG_LOGO), y)
+LOGO_ADDRESS := $(strip $(subst ",,$(CONFIG_LOGO_ADDRESS)))
+LOGO_FB_ADDRESS := $(strip $(subst ",,$(CONFIG_LOGO_FB_ADDRESS)))
+LOGO_NAME := $(strip $(subst ",,$(CONFIG_LOGO_NAME)))
+LOGO_RGBDEF := $(strip $(subst ",,$(CONFIG_LOGO_RGBDEF)))
+LOGO_SCALE := $(strip $(subst ",,$(CONFIG_LOGO_SCALE)))
+LOGO_BL := $(strip $(subst ",,$(CONFIG_LOGO_BL)))
+LOGO_BL_DELAY := $(strip $(subst ",,$(CONFIG_LOGO_BL_DELAY)))
+endif
+
 ifeq ($(CONFIG_SDHC_ASYNC_READ), y)
 SDHC_ASYNC_READ_QUEUE_SIZE := $(strip $(subst ",,$(CONFIG_SDHC_ASYNC_READ_QUEUE_SIZE)))
 endif

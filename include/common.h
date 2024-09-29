@@ -53,6 +53,16 @@ struct image_info
 #endif
 	unsigned char *of_dest;
 #endif
+
+#ifdef CONFIG_LOGO
+#if defined(CONFIG_DATAFLASH) || defined(CONFIG_NANDFLASH)
+	unsigned int logo_offset;
+#endif
+#ifdef CONFIG_SDCARD
+	char *logo_filename;
+#endif
+	unsigned char *logo_dest;
+#endif
 };
 
 typedef int (*load_function)(struct image_info *image);
