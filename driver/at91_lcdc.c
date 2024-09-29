@@ -11,6 +11,7 @@
 #include "div.h"
 #include "pmc.h"
 #include "timer.h"
+#include "spi.h"
 
 #define LCDC_DMA_ADDR LOGO_FB_ADDRESS
 #define LCDC_BMP_ADDR (LOGO_FB_ADDRESS + sizeof(struct dma_desc))
@@ -342,15 +343,728 @@ void lcdc_show_heo(void)
 	lcdc_writel(LCDC_HEOCFG(12), LAYER_GA(0xff) | LAYER_DMA | LAYER_OVR | LAYER_GAEN);
 
 	lcdc_writel(LCDC_HEOCHER, LAYER_UPDATE | LAYER_CH);
+	dbg_info("LCDC: show heo layer\n\r");
 }
+
+static void write_command(unsigned char data)
+{
+	unsigned char i;
+	lcd_pio_CS(0); //CS 0
+	//dbg_info("command- read CS:%d should be 0\n\r", read_gpio_CS());
+	lcd_pio_SCL(0); //CLK 0
+	//dbg_info("command- read SCL:%d\n\r", read_gpio_SCL());
+	lcd_pio_SDA(0); //SDA 0
+	//dbg_info("command- read SDA:%d\n\r", read_gpio_SDA());
+	lcd_pio_SCL(1); //CLK 1
+	//dbg_info("command- read SCL:%d\n\r", read_gpio_SCL());
+	
+	for (i=0; i<8; i++) {
+		lcd_pio_SCL(0);
+		//dbg_info("command- 0 read SCL:%d\n\r", read_gpio_SCL());
+		if (data & 0x80)
+			lcd_pio_SDA(1);
+		else
+			lcd_pio_SDA(0);
+
+		lcd_pio_SCL(1);
+		//dbg_info("command- 1 read SCL:%d\n\r", read_gpio_SCL());
+		data = data << 1;
+	}
+	lcd_pio_CS(1); //CS 1
+	//dbg_info("command- read end CS:%d should be 1\n\r", read_gpio_CS());
+}
+
+static void write_data(unsigned char data)
+{
+	unsigned char i;
+	lcd_pio_CS(0); //CS 0
+	//dbg_info("data- read CS:%d should be 0\n\r", read_gpio_CS());
+	lcd_pio_SCL(0); //CLK 0
+	//dbg_info("data- read SCL:%d\n\r", read_gpio_SCL());
+	lcd_pio_SDA(1); //SDA 0
+	//dbg_info("data- read SDA:%d\n\r", read_gpio_SDA());
+	lcd_pio_SCL(1); //CLK 1
+	//dbg_info("data- read SCL:%d\n\r", read_gpio_SCL());
+	
+	for (i=0; i<8; i++) {
+		lcd_pio_SCL(0);
+		//dbg_info("data- 0 read SCL:%d\n\r", read_gpio_SCL());
+		if (data & 0x80)
+			lcd_pio_SDA(1);
+		else
+			lcd_pio_SDA(0);
+
+		lcd_pio_SCL(1);
+		//dbg_info("data- 1 read SCL:%d\n\r", read_gpio_SCL());
+		data = data << 1;
+	}
+	lcd_pio_CS(1); //CS 1
+	//dbg_info("data - read CS:%d should be 1\n\r", read_gpio_CS());
+}
+
+#if 0
+void BOARD_InitLCD_SPI_normalscan(void)
+{
+	at91_spi0_hw_init();
+
+	lcd_pio_RES(1);
+	dbg_info("RES:%d should be 1\n\r", read_gpio_RES());
+	mdelay(20);
+	lcd_pio_RES(0);
+	dbg_info("RES:%d should be 0\n\r", read_gpio_RES());
+	mdelay(20);
+	lcd_pio_RES(1);
+	dbg_info("RES:%d should be 1\n\r", read_gpio_RES());
+	mdelay(20);
+
+	write_command(0xFE);
+	write_command(0xEF);
+
+	write_command(0xEB);
+	write_data(0x14);
+	write_command(0x84);
+	write_data(0x65);
+	write_command(0x85);
+	write_data(0xFF);
+	write_command(0x86);
+	write_data(0xFF);
+	write_command(0x87);
+	write_data(0xFF);
+	write_command(0x88);
+	write_data(0x0A);
+	write_command(0x89);
+	write_data(0x21);
+	write_command(0x8A);
+	write_data(0x40);
+	write_command(0x8B);
+	write_data(0x80);
+	write_command(0x8C);
+	write_data(0x01);
+	write_command(0x8D);
+	write_data(0x01);
+	write_command(0x8E);
+	write_data(0xFF);
+	write_command(0x8F);
+	write_data(0xFF);
+
+	write_command(0xB6);
+	write_data(0x00);
+	write_data(0x00);
+
+	write_command(0x36);
+	write_data(0x48);
+
+
+	write_command(0x3a);//´«?¸??¡?
+	write_data(0x55);///RGB MODE SELECTED
+
+	write_command(0xf6);//½???ýT?
+	write_data(0xc6);//RGBmode-16/18bit
+
+	write_command(0xb0);//RGB?ºN?
+	write_data(0x42);////40:DE MODE   60:SYNC MODE
+
+	write_command(0xb5);//??T?
+	write_data(0x08);//vfp[7:0]      host  8
+	write_data(0x09);//vbp[6:0]      host  4
+	write_data(0x14);//hbp[4:0]      host 20
+
+
+	write_command(0x90);
+	write_data(0x08);
+	write_data(0x08);
+	write_data(0x08);
+	write_data(0x08);
+
+	write_command(0xBD);
+	write_data(0x06);
+	///////////add///////////////////////
+	write_command(0xA6);
+	write_data(0x74);
+
+	write_command(0xBF);
+	write_data(0x1C);
+
+	write_command(0xA7);
+	write_data(0x45);
+
+	write_command(0xA9);
+	write_data(0xBB);
+
+	write_command(0xB8);
+	write_data(0x63);
+	/////////////////////////////////
+	write_command(0xBC);
+	write_data(0x00);
+
+	write_command(0xFF);
+	write_data(0x60);
+	write_data(0x01);
+	write_data(0x04);
+
+	write_command(0xC3);
+	write_data(0x21);
+	write_command(0xC4);
+	write_data(0x21);
+
+	write_command(0xC9);
+	write_data(0x25);
+
+	write_command(0xBE);
+	write_data(0x11);
+
+	write_command(0xE1);
+	write_data(0x10);
+	write_data(0x0E);
+
+	write_command(0xDF);
+	write_data(0x21);
+	write_data(0x0c);
+	write_data(0x02);
+
+	write_command(0xF0);
+	write_data(0x45);
+	write_data(0x09);
+	write_data(0x08);
+	write_data(0x08);
+	write_data(0x26);
+	write_data(0x2A);
+
+	write_command(0xF1);
+	write_data(0x43);
+	write_data(0x70);
+	write_data(0x72);
+	write_data(0x36);
+	write_data(0x37);
+	write_data(0x6F);
+
+	write_command(0xF2);
+	write_data(0x45);
+	write_data(0x09);
+	write_data(0x08);
+	write_data(0x08);
+	write_data(0x26);
+	write_data(0x2A);
+
+	write_command(0xF3);
+	write_data(0x43);
+	write_data(0x70);
+	write_data(0x72);
+	write_data(0x36);
+	write_data(0x37);
+	write_data(0x6F);
+
+	write_command(0xED);
+	write_data(0x1B);
+	write_data(0x0B);
+
+	write_command(0xAE);
+	write_data(0x77);
+
+	write_command(0xCD);
+	write_data(0x63);
+
+
+	write_command(0x70);
+	write_data(0x07);
+	write_data(0x07);
+	write_data(0x04);
+	write_data(0x0E);
+	write_data(0x0F);
+	write_data(0x09);
+	write_data(0x07);
+	write_data(0x08);
+	write_data(0x03);
+
+	write_command(0xE8);
+	write_data(0x24);
+	/////////////////////////////////////////////
+	write_command(0x60);
+	write_data(0x38); //STV1
+	write_data(0x0B);
+	write_data(0x6D);
+	write_data(0x6D);
+
+	write_data(0x39);//STV2
+	write_data(0xF0);
+	write_data(0x6D);
+	write_data(0x6D);
+
+
+	write_command(0x61);
+	write_data(0x38);//STV3
+	write_data(0xF4);
+	write_data(0x6D);
+	write_data(0x6D);
+
+	write_data(0x38);//STV4
+	write_data(0xF7);
+	write_data(0x6D);
+	write_data(0x6D);
+	/////////////////////////////////////
+	write_command(0x62);
+	write_data(0x38);
+	write_data(0x0D);
+	write_data(0x71);
+	write_data(0xED);
+	write_data(0x70);
+	write_data(0x70);
+	write_data(0x38);
+	write_data(0x0F);
+	write_data(0x71);
+	write_data(0xEF);
+	write_data(0x70);
+	write_data(0x70);
+
+	write_command(0x63);
+	write_data(0x38);
+	write_data(0x11);
+	write_data(0x71);
+	write_data(0xF1);
+	write_data(0x70);
+	write_data(0x70);
+	write_data(0x38);
+	write_data(0x13);
+	write_data(0x71);
+	write_data(0xF3);
+	write_data(0x70);
+	write_data(0x70);
+	///////////////////////////////////////////////////////
+	write_command(0x64);
+	write_data(0x28);
+	write_data(0x29);
+	write_data(0xF1);
+	write_data(0x01);
+	write_data(0xF1);
+	write_data(0x00);
+	write_data(0x07);
+
+	//??
+	write_command(0x66);
+	write_data(0x3C);
+	write_data(0x00);
+	write_data(0xCD);
+	write_data(0x67);
+	write_data(0x45);
+	write_data(0x45);
+	write_data(0x10);
+	write_data(0x00);
+	write_data(0x00);
+	write_data(0x00);
+
+	write_command(0x67);
+	write_data(0x00);
+	write_data(0x3C);
+	write_data(0x00);
+	write_data(0x00);
+	write_data(0x00);
+	write_data(0x01);
+	write_data(0x54);
+	write_data(0x10);
+	write_data(0x32);
+	write_data(0x98);
+
+
+
+	write_command(0x74);
+	write_data(0x10);
+	write_data(0x85);
+	write_data(0x80);
+	write_data(0x00);
+	write_data(0x00);
+	write_data(0x4E);
+	write_data(0x00);
+
+	write_command(0x98);
+	write_data(0x3e);
+	write_data(0x07);
+
+
+
+	write_command(0x35);
+	write_data(0x00);
+	write_command(0x21);
+	mdelay(120);
+	//--------end gamma setting--------------//
+
+	write_command(0x11);
+	mdelay(120);
+	write_command(0x29);
+	mdelay(120);
+	write_command(0x2C);
+	mdelay(120);
+
+}
+#endif
+
+void BOARD_InitLCD_SPI(void)
+{
+	at91_spi0_hw_init();
+
+	lcd_pio_RES(1);
+	//dbg_info("read1 RES:%d should be 1\n\r", read_gpio_RES());
+	mdelay(5);
+	lcd_pio_RES(0);
+	//dbg_info("read2 RES:%d should be 0\n\r", read_gpio_RES());
+	mdelay(20);
+	lcd_pio_RES(1);
+	//dbg_info("read3 RES:%d should be 1\n\r", read_gpio_RES());
+	mdelay(5);
+
+	write_command(0xFE);
+	write_command(0xEF);
+
+	write_command(0xEB);
+	write_data(0x14);
+	write_command(0x84);
+	write_data(0x65);
+	write_command(0x85);
+	write_data(0xF1);
+	write_command(0x86);
+	write_data(0x98);
+	write_command(0x87);
+	write_data(0x28);
+	write_command(0x88);
+	write_data(0x0A);
+	write_command(0x89);
+	write_data(0x21);
+	write_command(0x8A);
+	write_data(0x40);
+	write_command(0x8B);
+	write_data(0x80);
+	write_command(0x8C);
+	write_data(0x01);
+	write_command(0x8D);
+	write_data(0x03);//0x00
+	write_command(0x8E);
+	write_data(0xDF);
+	write_command(0x8F);
+	write_data(0x52);
+
+	write_command(0xB6);//??/????
+	write_data(0x00);
+	write_data(0x40);//GS 
+
+	write_command(0x36);//??XY???,?????
+	write_data(0x08);
+
+	write_command(0xf6);//??????
+	write_data(0xc6);//RGBmode-16/18bit
+
+	write_command(0xb0);//RGB????
+	write_data(0x40);////40:DE MODE   60:SYNC MODE
+
+	write_command(0x3A); //16/18bit??
+	write_data(0x55);
+
+	write_command(0xb5);
+	write_data(0x08);
+	write_data(0x09);
+	write_data(0x14);
+
+	write_command(0x90);
+	write_data(0x08);
+	write_data(0x08);
+	write_data(0x08);
+	write_data(0x08);
+
+	write_command(0xBD);
+	write_data(0x06);
+
+	//write_command(0xA6);
+	//write_data(0x74);
+
+	//write_command(0xBF);
+	//write_data(0x1C);
+
+	//write_command(0xA7);
+	//write_data(0x45);
+
+	write_command(0xA9);
+	write_data(0xCC);
+
+	//write_command(0xB8);
+	//write_data(0x63);
+
+
+	write_command(0xBC);
+	write_data(0x00);
+
+	write_command(0xFF);
+	write_data(0x60);
+	write_data(0x01);
+	write_data(0x04);
+
+	write_command(0xC3);///1a 1b		
+	write_data(0x21);//0x17
+
+	write_command(0xC4);///2a 2b		
+	write_data(0x21);//0x17/
+
+	write_command(0xC9);
+	write_data(0x25);///vrg1a  2a 0x25
+
+	write_command(0xBE);
+	write_data(0x11);
+
+	write_command(0xE1);
+	write_data(0x10);
+	write_data(0x0E);
+
+	write_command(0xDF);
+	write_data(0x21);
+	write_data(0x0c);
+	write_data(0x02);
+
+	write_command(0xF0);
+	write_data(0x45);
+	write_data(0x09);
+	write_data(0x08);
+	write_data(0x08);
+	write_data(0x26);
+	write_data(0x2A);
+
+	write_command(0xF1);
+	write_data(0x43);
+	write_data(0x70);
+	write_data(0x72);
+	write_data(0x36);
+	write_data(0x37);
+	write_data(0x6F);
+
+	write_command(0xF2);
+	write_data(0x45);
+	write_data(0x09);
+	write_data(0x08);
+	write_data(0x08);
+	write_data(0x26);
+	write_data(0x2A);
+
+	write_command(0xF3);
+	write_data(0x43);
+	write_data(0x70);
+	write_data(0x72);
+	write_data(0x36);
+	write_data(0x37);
+	write_data(0x6F);
+
+	write_command(0xED);
+	write_data(0x1B);
+	write_data(0x0B);
+
+	//write_command(0xAC);
+	//write_data(0x47);
+	write_command(0xAE);
+	write_data(0x77);
+	//write_command(0xCB);
+	//write_data(0x02);
+	write_command(0xCD);
+	write_data(0x63);
+
+	write_command(0x70);
+	write_data(0x07);
+	write_data(0x07);
+	write_data(0x04);
+	write_data(0x0E);
+	write_data(0x0F);
+	write_data(0x09);
+	write_data(0x07);
+	write_data(0x08);
+	write_data(0x03);
+
+	write_command(0xE8);
+	write_data(0x24);
+
+	write_command(0x60);
+	write_data(0x38);
+	write_data(0x0B);
+	write_data(0x6D);
+	write_data(0x6D);
+
+	write_data(0x39);
+	write_data(0xF0);
+	write_data(0x6D);
+	write_data(0x6D);
+
+
+	write_command(0x61);
+	write_data(0x38);
+	write_data(0xF4);
+	write_data(0x6D);
+	write_data(0x6D);
+
+	write_data(0x38);
+	write_data(0xF7);
+	write_data(0x6D);
+	write_data(0x6D);
+	/////////////////////////////////////
+	write_command(0x62);
+	write_data(0x38);
+	write_data(0x0D);
+	write_data(0x71);
+	write_data(0xED);
+	write_data(0x70);
+	write_data(0x70);
+	write_data(0x38);
+	write_data(0x0F);
+	write_data(0x71);
+	write_data(0xEF);
+	write_data(0x70);
+	write_data(0x70);
+
+	write_command(0x63);
+	write_data(0x38);
+	write_data(0x11);
+	write_data(0x71);
+	write_data(0xF1);
+	write_data(0x70);
+	write_data(0x70);
+	write_data(0x38);
+	write_data(0x13);
+	write_data(0x71);
+	write_data(0xF3);
+	write_data(0x70);
+	write_data(0x70);
+	///////////////////////////////////////////////////////
+	write_command(0x64);
+	write_data(0x28);
+	write_data(0x29);
+	write_data(0xF1);
+	write_data(0x01);
+	write_data(0xF1);
+	write_data(0x00);
+	write_data(0x07);
+
+
+	//·´?
+	write_command(0x66);
+	write_data(0x3C);
+	write_data(0x00);
+	write_data(0x98);
+	write_data(0x10);
+	write_data(0x32);
+	write_data(0x45);
+	write_data(0x01);
+	write_data(0x00);
+	write_data(0x00);
+	write_data(0x00);
+
+	write_command(0x67);
+	write_data(0x00);
+	write_data(0x3C);
+	write_data(0x00);
+	write_data(0x00);
+	write_data(0x00);
+	write_data(0x10);
+	write_data(0x54);
+	write_data(0x67);
+	write_data(0x45);
+	write_data(0xcd);
+	////////////////////////////////////////////////
+
+	write_command(0x74);
+	write_data(0x10);
+	write_data(0x85);
+	write_data(0x80);
+	write_data(0x00);
+	write_data(0x00);
+	write_data(0x4E);
+	write_data(0x00);
+
+	write_command(0x98);
+	write_data(0x3e);
+	write_data(0x07);
+	write_command(0x99);
+	write_data(0x3e);
+	write_data(0x07);
+
+	write_command(0x35);//?????
+	write_command(0x21);//????
+	mdelay(5);
+
+	write_command(0x11);//??
+	mdelay(5);
+	write_command(0x29);
+	write_command(0x2C);
+}
+
+#if 0
+void lcdm_init(void)
+{
+	unsigned int readuint = 0;
+	int ret = 0;
+
+	// Init the LCD module interface mode to RGB
+	/* [GC9A01 Datasheet] GC9A01 has two kinds of RGB interface and these interfaces can be selected by RCM [1:0] bits. When RCM */
+	/* [1:0] bits are set to “10”, the DE mode is selected which utilizes VSYNC, HSYNC, DOTCLK, DE, D [17:0]              */
+	/* pins; when RCM [1:0] bits are set to “11”, the SYNC mode is selected which utilizes which utilizes VSYNC,          */
+	/* HSYNC,DOTCLK, D [17:0] pins. Using RGB interface must selection serial interface.                                  */
+	/* 16-bit RGB interface          */
+	/* RCM[1:0] | RIM | DPI[1:0]     */
+	/* | 1 | 0  |  0  |  1 | 0 | 1 | */
+
+	// Init the SPI Pin control
+	at91_spi0_hw_init();
+
+
+	lcd_pio_RES(1);
+	mdelay(5);
+	lcd_pio_RES(0);
+	mdelay(20);
+	lcd_pio_RES(1);
+	mdelay(5);
+
+	ret = at91_spi_init(0, 1000000, SPI_MODE0);
+	if (ret) {
+		dbg_info("SF: Fail to initialize spi\n");
+		return;
+	}
+
+	at91_spi_enable();
+	dbg_info("spi enabled new............\n");
+
+	// Read GC9A01 identification information (04h)
+	spi_write_gc9a01_command(0x04); // Command start
+	spi_write_gc9a01_data(0xFF); // Data 
+	spi_write_gc9a01_data(0x00);
+	spi_write_gc9a01_data(0x9A);
+	spi_write_gc9a01_data(0x01);
+	
+	dbg_info("command sent done, _sr:%d\n", at91_spi_read_sr());
+	readuint = at91_spi_read_spi();
+	dbg_info("+++read spi from display, 04h:%x\n", readuint);
+
+	// Read GC9A01 display status (09h)
+	// spi_write_gc9a01(0x09); // Command
+	// spi_write_gc9a01(0xFF);
+	// spi_write_gc9a01(0x00);
+	// spi_write_gc9a01(0x61);
+	// spi_write_gc9a01(0x00);
+	// spi_write_gc9a01(0x00);
+	// readuint = at91_spi_read_spi();
+	// dbg_info("+++read spi from display, 09h:%x\n", readuint);
+
+	// Write GC9A01 RGB interface control
+	spi_write_gc9a01_command(0xF6);
+	spi_write_gc9a01_data(0xC6);
+	dbg_info("+++write spi RGB mode done!\n");
+}
+
+#endif
 
 void lcdc_init(void)
 {
+	BOARD_InitLCD_SPI();
+
 	/* Invalidate bmp struct buffer */
 	lcdc.bmp->bf_type[0] = 0;
 	lcdc.bmp->bf_type[1] = 0;
 
 	at91_lcdc_hw_init();
+	lcdc_set_backlight(LOGO_BL);
+	dbg_info("++++++++++++++++LCDC: set backlight: %d.............\n", LOGO_BL);
+	return;
+
 	lcdc_off();
 	lcdc_on();
 	lcdc_show_base();
@@ -358,6 +1072,8 @@ void lcdc_init(void)
 
 int lcdc_display(void)
 {
+	
+	return 0;
 	u32 i;
 	u32 line_bytes;
 	u8 line_padding;
@@ -367,6 +1083,8 @@ int lcdc_display(void)
 		dbg_printf("LCDC: bmp file not found\n\r");
 		return -1;
 	}
+	
+	dbg_info("LCDC: bi_bitcount: %d \n\r", lcdc.bmp->bi_bitcount);
 
 	switch (lcdc.bmp->bi_bitcount) {
 	case 32:

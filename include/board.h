@@ -82,4 +82,13 @@ extern void at91_disable_smd_clock(void);
 
 extern int at91_board_act8865_set_reg_voltage(void);
 
+extern void lcd_pio_RES(unsigned char flag);
+extern void lcd_pio_CS(unsigned char flag);
+extern void lcd_pio_SCL(unsigned char flag);
+extern void lcd_pio_SDA(unsigned char flag);
+extern int read_gpio_RES(void);
+extern int read_gpio_CS(void);
+extern int read_gpio_SCL(void);
+extern int read_gpio_SDA(void);
+
 #endif /* #ifndef __BOARD_H__ */

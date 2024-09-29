@@ -279,6 +279,69 @@ void twi_init()
 }
 #endif
 
+void at91_spi0_hw_init(void)
+{
+	//unsigned int spi_base = AT91C_BASE_FLEXCOM4;
+	const struct pio_desc spi_pins[] = {
+		{"SPI0_SPCK",	AT91C_PIN_PA(13), 0, PIO_PULLUP | PIO_OPENDRAIN | PIO_DRVSTR_HI, PIO_OUTPUT},
+		{"SPI0_MOSI",	AT91C_PIN_PA(12), 0, PIO_PULLUP | PIO_OPENDRAIN | PIO_DRVSTR_HI, PIO_OUTPUT},
+		//{"SPI0_MISO",	AT91C_PIN_PA(16), 0, PIO_DEFAULT, PIO_PERIPH_A},
+		{"SPI0_NPCS",	AT91C_PIN_PA(14), 0, PIO_PULLUP | PIO_OPENDRAIN | PIO_DRVSTR_HI, PIO_OUTPUT},
+		{"SPI0_REST",   AT91C_PIN_PC(31), 0, PIO_PULLUP | PIO_OPENDRAIN | PIO_DRVSTR_HI, PIO_OUTPUT},
+		{(char *)0, 0, 0, PIO_DEFAULT, PIO_PERIPH_A},
+	};
+
+	pio_configure(spi_pins);
+
+	// spi_base = flexcoms[4].addr;
+	// flexcoms[4].mode = FLEXCOM_SPI;
+	// flexcoms[4].addr = spi_base - AT91C_OFFSET_FLEXCOM_SPI;
+	// flexcom_init(4);
+
+	pmc_enable_periph_clock(AT91C_ID_PIOA, PMC_PERIPH_CLK_DIVIDER_NA);
+	pmc_enable_periph_clock(AT91C_ID_PIOC, PMC_PERIPH_CLK_DIVIDER_NA);
+}
+
+void lcd_pio_RES(unsigned char flag)
+{
+	pio_set_gpio_output(AT91C_PIN_PC(31), flag);
+}
+
+void lcd_pio_CS(unsigned char flag)
+{
+	pio_set_gpio_output(AT91C_PIN_PA(14), flag);
+}
+
+void lcd_pio_SCL(unsigned char flag)
+{
+	pio_set_gpio_output(AT91C_PIN_PA(13), flag);
+}
+
+void lcd_pio_SDA(unsigned char flag)
+{
+	pio_set_gpio_output(AT91C_PIN_PA(12), flag);
+}
+
+int read_gpio_RES(void)
+{
+	return pio_get_value(AT91C_PIN_PC(31));
+}
+
+int read_gpio_CS(void)
+{
+	return pio_get_value(AT91C_PIN_PA(14));
+}
+
+int read_gpio_SCL(void)
+{
+	return pio_get_value(AT91C_PIN_PA(13));
+}
+
+int read_gpio_SDA(void)
+{
+	return pio_get_value(AT91C_PIN_PA(12));
+}
+
 void hw_init(void)
 {
 	unsigned int reg;
@@ -613,14 +676,14 @@ void at91_lcdc_hw_init(void)
 	const struct pio_desc lcdc_pins[] = {
 		{"LCDVSYNC", AT91C_PIN_PC(27), 0, PIO_DEFAULT, PIO_PERIPH_A},
 		{"LCDHSYNC", AT91C_PIN_PC(28), 0, PIO_DEFAULT, PIO_PERIPH_A},
-		{"LCDDISP" , AT91C_PIN_PC(24), 0, PIO_DEFAULT, PIO_PERIPH_A},
+		//{"LCDDISP" , AT91C_PIN_PC(31), 0, PIO_DEFAULT, PIO_PERIPH_A},
 		{"LCDDEN"  , AT91C_PIN_PC(29), 0, PIO_DEFAULT, PIO_PERIPH_A},
 		{"LCDPCK"  , AT91C_PIN_PC(30), 0, PIO_DEFAULT, PIO_PERIPH_A},
 #ifdef CONFIG_LCDC_IOSET_1_24_BIT
 		{"LCDD0"   , AT91C_PIN_PC(0) , 0, PIO_DEFAULT, PIO_PERIPH_A},
 		{"LCDD1"   , AT91C_PIN_PC(1) , 0, PIO_DEFAULT, PIO_PERIPH_A},
 #endif
-		{"LCDD2"   , AT91C_PIN_PC(2) , 0, PIO_DEFAULT, PIO_PERIPH_A},
+		//{"LCDD2"   , AT91C_PIN_PC(2) , 0, PIO_DEFAULT, PIO_PERIPH_A},
 		{"LCDD3"   , AT91C_PIN_PC(3) , 0, PIO_DEFAULT, PIO_PERIPH_A},
 		{"LCDD4"   , AT91C_PIN_PC(4) , 0, PIO_DEFAULT, PIO_PERIPH_A},
 		{"LCDD5"   , AT91C_PIN_PC(5) , 0, PIO_DEFAULT, PIO_PERIPH_A},
@@ -640,7 +703,7 @@ void at91_lcdc_hw_init(void)
 		{"LCDD16"  , AT91C_PIN_PC(16), 0, PIO_DEFAULT, PIO_PERIPH_A},
 		{"LCDD17"  , AT91C_PIN_PC(17), 0, PIO_DEFAULT, PIO_PERIPH_A},
 #endif
-		{"LCDD18"  , AT91C_PIN_PC(18), 0, PIO_DEFAULT, PIO_PERIPH_A},
+		//{"LCDD18"  , AT91C_PIN_PC(18), 0, PIO_DEFAULT, PIO_PERIPH_A},
 		{"LCDD19"  , AT91C_PIN_PC(19), 0, PIO_DEFAULT, PIO_PERIPH_A},
 		{"LCDD20"  , AT91C_PIN_PC(20), 0, PIO_DEFAULT, PIO_PERIPH_A},
 		{"LCDD21"  , AT91C_PIN_PC(21), 0, PIO_DEFAULT, PIO_PERIPH_A},

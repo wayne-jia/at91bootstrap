@@ -15,22 +15,22 @@
 
 static inline unsigned int spi_readl(unsigned int reg)
 {
-	return readl(CONFIG_SYS_BASE_SPI + reg);
+	return readl(AT91C_BASE_FLEXCOM4 + reg);
 }
 
 static inline void spi_writel(unsigned int reg, unsigned int value)
 {
-	writel(value, CONFIG_SYS_BASE_SPI + reg);
+	writel(value, AT91C_BASE_FLEXCOM4 + reg);
 }
 
 void at91_spi_cs_activate(void)
 {
-	pio_set_value(CONFIG_SYS_SPI_PCS, 0);
+	pio_set_value(AT91C_PIN_PA(14), 0);
 }
 
 void at91_spi_cs_deactivate(void)
 {
-	pio_set_value(CONFIG_SYS_SPI_PCS, 1);
+	pio_set_value(AT91C_PIN_PA(14), 1);
 }
 
 void at91_spi_enable(void)
