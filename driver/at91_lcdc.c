@@ -276,7 +276,7 @@ static void lcdc_on(void)
 
 	wait_for_clock_domain_sync();
 	lcdc_writel(LCDC_CFG(5), LCDC_CFG5_GUARDTIME(0) |
-				 LCDC_CFG5_MODE_OUTPUT_24BPP |
+				 LCDC_CFG5_MODE_OUTPUT_16BPP |
 				 LCDC_CFG5_DISPDLY |
 				 LCDC_CFG5_VSPDLYS |
 				 LCDC_CFG5_VSPOL |
@@ -305,9 +305,20 @@ static void lcdc_on(void)
 
 void lcdc_show_base(void)
 {
-	lcdc_writel(LCDC_BASECFG(1), LAYER_RGB_888_PACKED);
-	lcdc_writel(LCDC_BASECFG(3), LAYER_RGB(LOGO_RGBDEF));
-	lcdc_writel(LCDC_BASECHER, LAYER_UPDATE | LAYER_CH);
+	lcdc_writel(LCDC_BASECFG(1), LAYER_RGB_565);
+	do {
+		lcdc_writel(LCDC_BASECFG(3), LAYER_RGB(0xff0000));
+		lcdc_writel(LCDC_BASECHER, LAYER_UPDATE | LAYER_CH);
+		mdelay(1000);
+		lcdc_writel(LCDC_BASECFG(3), LAYER_RGB(0x00ff00));
+		lcdc_writel(LCDC_BASECHER, LAYER_UPDATE | LAYER_CH);
+		mdelay(1000);
+		lcdc_writel(LCDC_BASECFG(3), LAYER_RGB(0x0000ff));
+		lcdc_writel(LCDC_BASECHER, LAYER_UPDATE | LAYER_CH);
+		mdelay(1000);
+	}
+	while (1);
+
 }
 
 void lcdc_show_heo(void)
@@ -408,14 +419,14 @@ void BOARD_InitLCD_SPI_normalscan(void)
 	at91_spi0_hw_init();
 
 	lcd_pio_RES(1);
-	dbg_info("RES:%d should be 1\n\r", read_gpio_RES());
-	mdelay(20);
+	//dbg_info("RES:%d should be 1\n\r", read_gpio_RES());
+	mdelay(5);
 	lcd_pio_RES(0);
-	dbg_info("RES:%d should be 0\n\r", read_gpio_RES());
+	//dbg_info("RES:%d should be 0\n\r", read_gpio_RES());
 	mdelay(20);
 	lcd_pio_RES(1);
-	dbg_info("RES:%d should be 1\n\r", read_gpio_RES());
-	mdelay(20);
+	//dbg_info("RES:%d should be 1\n\r", read_gpio_RES());
+	mdelay(5);
 
 	write_command(0xFE);
 	write_command(0xEF);
@@ -1061,9 +1072,6 @@ void lcdc_init(void)
 	lcdc.bmp->bf_type[1] = 0;
 
 	at91_lcdc_hw_init();
-	lcdc_set_backlight(LOGO_BL);
-	dbg_info("++++++++++++++++LCDC: set backlight: %d.............\n", LOGO_BL);
-	return;
 
 	lcdc_off();
 	lcdc_on();
