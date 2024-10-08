@@ -667,15 +667,15 @@ void BOARD_InitLCD_SPI(void)
 	write_command(0x35);
 	write_data(0x00);
 	write_command(0x21);
-	mdelay(120);
+	mdelay(5);
 	//--------end gamma setting--------------//
 
 	write_command(0x11);
-	mdelay(120);
+	mdelay(5);
 	write_command(0x29);
-	mdelay(120);
+	//mdelay(120);
 	write_command(0x2C);
-	mdelay(120);
+	//mdelay(120);
 
 }
 
