@@ -283,20 +283,15 @@ void at91_spi0_hw_init(void)
 {
 	//unsigned int spi_base = AT91C_BASE_FLEXCOM4;
 	const struct pio_desc spi_pins[] = {
-		{"SPI0_SPCK",	AT91C_PIN_PA(13), 0, PIO_PULLUP | PIO_OPENDRAIN | PIO_DRVSTR_HI, PIO_OUTPUT},
-		{"SPI0_MOSI",	AT91C_PIN_PA(12), 0, PIO_PULLUP | PIO_OPENDRAIN | PIO_DRVSTR_HI, PIO_OUTPUT},
+		{"SPI0_SPCK",	AT91C_PIN_PA(13), 0, PIO_DEFAULT, PIO_OUTPUT},
+		{"SPI0_MOSI",	AT91C_PIN_PA(12), 0, PIO_DEFAULT, PIO_OUTPUT},
 		//{"SPI0_MISO",	AT91C_PIN_PA(16), 0, PIO_DEFAULT, PIO_PERIPH_A},
-		{"SPI0_NPCS",	AT91C_PIN_PA(14), 1, PIO_PULLUP | PIO_OPENDRAIN | PIO_DRVSTR_HI, PIO_OUTPUT},
-		{"SPI0_REST",   AT91C_PIN_PC(31), 0, PIO_PULLUP | PIO_OPENDRAIN | PIO_DRVSTR_HI, PIO_OUTPUT},
+		{"SPI0_NPCS",	AT91C_PIN_PA(14), 1, PIO_DEFAULT, PIO_OUTPUT},
+		{"SPI0_REST",   AT91C_PIN_PC(31), 0, PIO_DEFAULT, PIO_OUTPUT},
 		{(char *)0, 0, 0, PIO_DEFAULT, PIO_PERIPH_A},
 	};
 
 	pio_configure(spi_pins);
-
-	// spi_base = flexcoms[4].addr;
-	// flexcoms[4].mode = FLEXCOM_SPI;
-	// flexcoms[4].addr = spi_base - AT91C_OFFSET_FLEXCOM_SPI;
-	// flexcom_init(4);
 
 	pmc_enable_periph_clock(AT91C_ID_PIOA, PMC_PERIPH_CLK_DIVIDER_NA);
 	pmc_enable_periph_clock(AT91C_ID_PIOC, PMC_PERIPH_CLK_DIVIDER_NA);
