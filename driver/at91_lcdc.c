@@ -685,13 +685,10 @@ void BOARD_InitLCD_SPI(void)
 	at91_spi0_hw_init();
 
 	lcd_pio_RES(1);
-	//dbg_info("read1 RES:%d should be 1\n\r", read_gpio_RES());
 	mdelay(5);
 	lcd_pio_RES(0);
-	//dbg_info("read2 RES:%d should be 0\n\r", read_gpio_RES());
 	mdelay(20);
 	lcd_pio_RES(1);
-	//dbg_info("read3 RES:%d should be 1\n\r", read_gpio_RES());
 	mdelay(5);
 
 	write_command(0xFE);
@@ -986,6 +983,26 @@ void lcdc_init(void)
 	lcdc_show_base();
 }
 
+#if 0
+void lcdc_reg_dump(void)
+{
+	dbg_info("LCDC_REGS->LCDC_LCDCFG0: %x\r\n", lcdc_readl(LCDC_CFG(0)));
+	dbg_info("LCDC_REGS->LCDC_LCDCFG1: %x\r\n", lcdc_readl(LCDC_CFG(1)));
+	dbg_info("LCDC_REGS->LCDC_LCDCFG2: %x\r\n", lcdc_readl(LCDC_CFG(2)));
+	dbg_info("LCDC_REGS->LCDC_LCDCFG3: %x\r\n", lcdc_readl(LCDC_CFG(3)));
+	dbg_info("LCDC_REGS->LCDC_LCDCFG4: %x\r\n", lcdc_readl(LCDC_CFG(4)));
+	dbg_info("LCDC_REGS->LCDC_LCDCFG5: %x\r\n", lcdc_readl(LCDC_CFG(5)));
+	dbg_info("LCDC_REGS->LCDC_LCDCFG6: %x\r\n", lcdc_readl(LCDC_CFG(6)));
+	dbg_info("LCDC_REGS->LCDC_BASECFG0: %x\r\n", lcdc_readl(LCDC_BASECFG(0)));
+	dbg_info("LCDC_REGS->LCDC_BASECFG1: %x\r\n", lcdc_readl(LCDC_BASECFG(1)));
+	dbg_info("LCDC_REGS->LCDC_BASECFG2: %x\r\n", lcdc_readl(LCDC_BASECFG(2)));
+	dbg_info("LCDC_REGS->LCDC_BASECFG3: %x\r\n", lcdc_readl(LCDC_BASECFG(3)));
+	dbg_info("LCDC_REGS->LCDC_BASECFG4: %x\r\n", lcdc_readl(LCDC_BASECFG(4)));
+	dbg_info("LCDC_REGS->LCDC_BASECFG5: %x\r\n", lcdc_readl(LCDC_BASECFG(5)));
+	dbg_info("LCDC_REGS->LCDC_BASECFG6: %x\r\n", lcdc_readl(LCDC_BASECFG(6)));
+}
+#endif
+
 int lcdc_display(void)
 {
 	u32 i;
@@ -1113,7 +1130,7 @@ UNSUPPORTED:
 	if (LOGO_BL_DELAY)
 		mdelay(LOGO_BL_DELAY);
 	lcdc_set_backlight(LOGO_BL);
-
+	dbg_info("logo show in bootstrap\r\n");
 	return 0;
 }
 

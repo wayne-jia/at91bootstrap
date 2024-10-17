@@ -27,7 +27,7 @@ static const struct spi_nor_info *spi_nor_read_id(struct spi_flash *flash)
 		*p++ = (lo < 10) ? ('0' + lo) : ('a' + lo - 10);
 	}
 	*p = '\0';
-	dbg_info("SF: Got Manufacturer and Device ID: %s\n", id_str);
+	//dbg_info("SF: Got Manufacturer and Device ID: %s\n", id_str);
 
 	for (info = spi_nor_ids; info->name; info++) {
 		if (!memcmp(info->id, flash->id, info->id_len))
