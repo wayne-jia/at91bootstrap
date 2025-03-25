@@ -524,7 +524,7 @@ void at91_board_set_dtb_name(char *of_name)
 }
 #endif
 
-#define ATMEL_SDHC_GCKDIV_VALUE		3
+#define ATMEL_SDHC_GCKDIV_VALUE		0
 
 void at91_sdhc_hw_init(void)
 {
@@ -542,7 +542,9 @@ void at91_sdhc_hw_init(void)
 		{"SDMMC0_DAT5", AT91C_PIN_PA(8), 0, PIO_PULLUP, PIO_PERIPH_A},
 		{"SDMMC0_DAT6", AT91C_PIN_PA(9), 0, PIO_PULLUP, PIO_PERIPH_A},
 		{"SDMMC0_DAT7", AT91C_PIN_PA(10), 0, PIO_PULLUP, PIO_PERIPH_A},
-		{"SDMMC0_CD",  AT91C_PIN_PA(14), 0, PIO_PULLUP, PIO_PERIPH_A},
+		{"SDMMC0_DS", AT91C_PIN_PA(11), 0, PIO_PULLUP, PIO_PERIPH_A},
+		{"SDMMC0_CD",  AT91C_PIN_PA(16), 0, PIO_PULLUP, PIO_PERIPH_B},
+		{"SDMMC0_VS",  AT91C_PIN_PA(15), 0, PIO_DEFAULT, PIO_PERIPH_B},
 		{(char *)0, 0, 0, PIO_DEFAULT, PIO_PERIPH_A},
 	};
 	const struct pio_desc sdmmc_pins_reset[] = {
@@ -908,6 +910,8 @@ void hw_init(void)
 #ifdef CONFIG_BACKUP_VDDIN33
 	/* Switch backup area to VDDIN33. */
 	sfrbu_select_ba_power_source(true);
+#else
+	sfrbu_auto_ba_power_source();
 #endif
 
 	/* Watchdog might be enabled out of reset. Let's make sure it's off */
@@ -991,11 +995,11 @@ void hw_init(void)
 	/* Configure & Enable DDR PLL */
 #if CONFIG_MEM_CLOCK == 533
 	ddrpll_config.mul = 43; /* (43 + 1) * 24 = 1056 */
-	ddrpll_config.div = 1; 
+	ddrpll_config.div = 1; /* 1066 / 2 = 533 MHz */
 	ddrpll_config.divio = 0;
 	ddrpll_config.count = 0x3f;
 	ddrpll_config.fracr = 0x1aaaab; /* (10/24) * 2^22 to get extra 10 MHz */
-	ddrpll_config.acr = 0;
+	ddrpll_config.acr = 0x00070010;
 	/* DDRPLL @ 1066 MHz */
 #endif
 #if CONFIG_MEM_CLOCK == 400
@@ -1004,34 +1008,35 @@ void hw_init(void)
 	ddrpll_config.divio = 0;
 	ddrpll_config.count = 0x3f;
 	ddrpll_config.fracr = 0;
-	ddrpll_config.acr = 0;
+	ddrpll_config.acr = 0x00070010;
 	/* DDRPLL @ 1200 MHz */
 #endif
 	pmc_sam9x60_cfg_pll(PLL_ID_DDRPLL, &ddrpll_config);
-	/* MCK2 @ DDRPLL/2 MHz = 533 MHz */
+	/* MCK2 @ DDRPLL_DIV/4 = 133.25 MHz */
 	pmc_mck_cfg_set(2, BOARD_PRESCALER_MCK2,
 			AT91C_MCR_DIV | AT91C_MCR_CSS | AT91C_MCR_EN);
 	pmc_enable_periph_clock(AT91C_ID_DDRUMCTL, PMC_PERIPH_CLK_DIVIDER_NA);
 	pmc_enable_periph_clock(AT91C_ID_DDRPUBL, PMC_PERIPH_CLK_DIVIDER_NA);
 
+	/* MCK3 @ DDRPLL_DIV/2 = 266.5 MHz */
+	pmc_mck_cfg_set(3, BOARD_PRESCALER_MCK3,
+			AT91C_MCR_DIV | AT91C_MCR_CSS | AT91C_MCR_EN);
+
 	/* Configure & Enable GPU PLL */
 	imgpll_config.mul = 43; /* (43 + 1) * 24 = 1056 */
 	imgpll_config.div = 3; 
-	imgpll_config.divio = 3;
+	imgpll_config.divio = 0;
 	imgpll_config.count = 0x3f;
 	imgpll_config.fracr = 0x155555; /* (8/24) * 2^22 to get extra 8 MHz */
 	imgpll_config.acr = 0x00070010;
 	/* GPUPLL @ 1064 MHz */
 	pmc_sam9x60_cfg_pll(PLL_ID_IMGPLL, &imgpll_config);
-	/* MCK3 @ 266 MHz */
-	pmc_mck_cfg_set(3, BOARD_PRESCALER_MCK3,
-			AT91C_MCR_DIV | AT91C_MCR_CSS | AT91C_MCR_EN);
 
 	/* Configure & Enable BAUD PLL */
 	buadpll_config.mul = 32; /* (32+1) * 24 = 800 */
-	buadpll_config.div = 2; /* 800 / 3 = 266 MHz */
+	buadpll_config.div = 3; /* 800 / 4 = 200 MHz */
 	buadpll_config.count = 0x3f;
-	buadpll_config.fracr = 0x155550;
+	buadpll_config.fracr = 0;
 	buadpll_config.acr = 0x00070010;
 	
 	/* BUADPLL @ 266 MHz */
